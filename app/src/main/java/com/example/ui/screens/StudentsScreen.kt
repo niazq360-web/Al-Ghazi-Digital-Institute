@@ -1,5 +1,9 @@
 package com.example.ui.screens
 
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import java.io.File
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -22,13 +26,19 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -38,15 +48,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.ui.components.AcademyHeaderLogo
+import com.example.ui.components.AppConfirmationDialog
 import com.example.ui.navigation.Screen
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.GoldBright
@@ -71,6 +86,21 @@ fun StudentsScreen(
     val filterCourse by viewModel.filterCourse.collectAsState()
     val courses by viewModel.activeCourses.collectAsState()
     val settings by viewModel.settings.collectAsState()
+    var showWipeDialog by remember { mutableStateOf(false) }
+
+    if (showWipeDialog) {
+        AppConfirmationDialog(
+            title = "Wipe All Records? / تمام ریکارڈز ختم کریں؟",
+            message = "Are you sure you want to permanently clear all student admissions, fee payments, and records? This will leave your academy with 0 records.",
+            confirmText = "Wipe All Records",
+            isDestructive = true,
+            onConfirm = {
+                viewModel.clearAllRecords()
+                showWipeDialog = false
+            },
+            onDismiss = { showWipeDialog = false }
+        )
+    }
 
     Scaffold(
         floatingActionButton = {
@@ -91,11 +121,27 @@ fun StudentsScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp)
         ) {
-            AcademyHeaderLogo(
-                academyName = settings.academyName,
-                tagline = "Students Directory & Enrollment",
-                compact = true
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(modifier = Modifier.weight(1f)) {
+                    AcademyHeaderLogo(
+                        academyName = settings.academyName,
+                        tagline = "Students Directory & Enrollment",
+                        compact = true
+                    )
+                }
+                if (students.isNotEmpty()) {
+                    IconButton(
+                        onClick = { showWipeDialog = true },
+                        modifier = Modifier.testTag("wipe_students_header_btn")
+                    ) {
+                        Icon(Icons.Default.DeleteSweep, contentDescription = "Wipe Records", tint = DangerRed)
+                    }
+                }
+            }
 
             // Search Bar
             OutlinedTextField(
@@ -155,17 +201,66 @@ fun StudentsScreen(
             ) {
                 if (students.isEmpty()) {
                     item {
-                        Box(
+                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 40.dp),
-                            contentAlignment = Alignment.Center
+                                .padding(top = 24.dp)
+                                .border(1.dp, NavyBorder, RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = NavyCard)
                         ) {
-                            Text(
-                                text = "No students found matching criteria.",
-                                color = TextSecondaryDark,
-                                fontSize = 14.sp
-                            )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(68.dp)
+                                        .clip(CircleShape)
+                                        .background(NavyLight),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.School,
+                                        contentDescription = null,
+                                        tint = GoldPrimary,
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(14.dp))
+                                Text(
+                                    text = if (searchQuery.isNotBlank() || filterCourse != null)
+                                        "No students matching criteria"
+                                    else
+                                        "Clean Slate: No Students Registered",
+                                    color = TextPrimaryDark,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = if (searchQuery.isNotBlank() || filterCourse != null)
+                                        "Try changing your search term or course filter."
+                                    else
+                                        "All previous records have been cleared. Register new students and upload photos using Camera or Gallery.",
+                                    color = TextSecondaryDark,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(
+                                    onClick = { onNavigate(Screen.AddEditStudent.createRoute()) },
+                                    colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = NavyDark),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(Icons.Default.AddAPhoto, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Admit New Student (+ نیا طالب علم)", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                }
+                            }
                         }
                     }
                 }
@@ -192,12 +287,21 @@ fun StudentsScreen(
                                     .border(1.5.dp, GoldPrimary, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = student.name.take(2).uppercase(),
-                                    color = GoldBright,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                if (student.photoUri.isNotBlank() && File(student.photoUri).exists()) {
+                                    AsyncImage(
+                                        model = File(student.photoUri),
+                                        contentDescription = student.name,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    Text(
+                                        text = student.name.take(2).uppercase(),
+                                        color = GoldBright,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
 
                             Spacer(modifier = Modifier.width(12.dp))

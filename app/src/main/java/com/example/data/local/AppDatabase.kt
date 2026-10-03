@@ -36,7 +36,7 @@ import kotlinx.coroutines.launch
         Certificate::class,
         SmsTemplate::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -63,7 +63,7 @@ abstract class AppDatabase : RoomDatabase() {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "al_ghazi_academy.db"
+                    "al_ghazi_academy_v2.db"
                 )
                     .fallbackToDestructiveMigration()
                     .addCallback(DatabaseCallback())
@@ -101,9 +101,9 @@ abstract class AppDatabase : RoomDatabase() {
                     instagram = "instagram.com/alghazidigital",
                     youtube = "youtube.com/@alghazidigital",
                     receiptPrefix = "REC-2026-",
-                    nextReceiptSeq = 3,
+                    nextReceiptSeq = 1,
                     certificatePrefix = "AG-CERT-2026-",
-                    nextCertSeq = 2,
+                    nextCertSeq = 1,
                     printerPaperWidth = "58mm",
                     adminPasswordHash = "admin123"
                 )
@@ -259,223 +259,6 @@ abstract class AppDatabase : RoomDatabase() {
                 )
             )
             database.smsTemplateDao().insertAll(templates)
-
-            // Initial Teachers / Faculty
-            val teachers = listOf(
-                Teacher(
-                    id = 1,
-                    name = "Sir Bilal Ahmed",
-                    fatherOrHusbandName = "Ahmed Khan",
-                    phone = "+92 312 9876543",
-                    email = "bilal@alghazi.edu.pk",
-                    qualification = "Chartered Financial Analyst (CFA)",
-                    subjectOrCourse = "Trading",
-                    monthlySalary = 65000.0,
-                    joiningDate = "2025-06-01",
-                    status = "Active",
-                    address = "Defence Phase 5, Karachi"
-                ),
-                Teacher(
-                    id = 2,
-                    name = "Ma'am Ayesha Khan",
-                    fatherOrHusbandName = "Nawaz Khan",
-                    phone = "+92 333 4567890",
-                    email = "ayesha@alghazi.edu.pk",
-                    qualification = "M.A. English Linguistics",
-                    subjectOrCourse = "Spoken English",
-                    monthlySalary = 48000.0,
-                    joiningDate = "2025-08-15",
-                    status = "Active",
-                    address = "Gulshan-e-Iqbal, Karachi"
-                ),
-                Teacher(
-                    id = 3,
-                    name = "Sir Daniyal Ali",
-                    fatherOrHusbandName = "Ali Asghar",
-                    phone = "+92 345 1122334",
-                    email = "daniyal@alghazi.edu.pk",
-                    qualification = "BFA Visual Communication",
-                    subjectOrCourse = "Graphic Designing",
-                    monthlySalary = 52000.0,
-                    joiningDate = "2025-09-01",
-                    status = "Active",
-                    address = "North Nazimabad, Karachi"
-                )
-            )
-            database.teacherDao().insertAll(teachers)
-
-            // Initial Expenses (Rent, Utility, Salary, Marketing)
-            val expenses = listOf(
-                Expense(
-                    id = 1,
-                    expenseNo = "EXP-2026-0001",
-                    title = "Campus Building Rent",
-                    category = "Rent",
-                    amount = 85000.0,
-                    expenseDate = System.currentTimeMillis() - 86400000L * 4,
-                    description = "Monthly campus lease payment",
-                    paidTo = "Property Trust",
-                    paymentMethod = "Bank Transfer"
-                ),
-                Expense(
-                    id = 2,
-                    expenseNo = "EXP-2026-0002",
-                    title = "High Speed Fiber Internet",
-                    category = "Internet & Tech",
-                    amount = 12000.0,
-                    expenseDate = System.currentTimeMillis() - 86400000L * 3,
-                    description = "100Mbps dedicated lab internet",
-                    paidTo = "StormFiber",
-                    paymentMethod = "Online"
-                ),
-                Expense(
-                    id = 3,
-                    expenseNo = "EXP-2026-0003",
-                    title = "K-Electric Commercial Bill",
-                    category = "Electricity / Utilities",
-                    amount = 34500.0,
-                    expenseDate = System.currentTimeMillis() - 86400000L * 2,
-                    description = "AC & computer labs power bill",
-                    paidTo = "K-Electric",
-                    paymentMethod = "Bank Transfer"
-                ),
-                Expense(
-                    id = 4,
-                    expenseNo = "EXP-2026-0004",
-                    title = "Meta Social Media Ads",
-                    category = "Marketing / Ads",
-                    amount = 25000.0,
-                    expenseDate = System.currentTimeMillis() - 86400000L,
-                    description = "New admissions campaign Facebook/Instagram",
-                    paidTo = "Meta Ads",
-                    paymentMethod = "Credit Card"
-                )
-            )
-            database.expenseDao().insertAll(expenses)
-
-            // Initial Sample Students
-            val students = listOf(
-                Student(
-                    id = 1,
-                    studentId = "AG-2026-0001",
-                    name = "Muhammad Hamza",
-                    fatherName = "Tariq Mahmood",
-                    gender = "Male",
-                    dob = "2004-03-12",
-                    cnicOrBForm = "42101-1234567-1",
-                    studentMobile = "+92 301 2345678",
-                    parentMobile = "+92 300 9876543",
-                    whatsappNumber = "+92 301 2345678",
-                    address = "House 12, Block 4, Clifton",
-                    city = "Karachi",
-                    photoUri = "",
-                    courseId = 8,
-                    courseName = "Android App Development",
-                    batchName = "Batch-AND-Pro",
-                    timing = "03:00 PM - 05:00 PM",
-                    admissionDate = "2026-08-15",
-                    courseFee = 35000.0,
-                    discount = 3000.0,
-                    finalFee = 32000.0,
-                    paidFee = 20000.0,
-                    remainingFee = 12000.0,
-                    status = "Active",
-                    notes = "Fast learner, working on final portfolio project."
-                ),
-                Student(
-                    id = 2,
-                    studentId = "AG-2026-0002",
-                    name = "Zainab Fatima",
-                    fatherName = "Rashid Ali",
-                    gender = "Female",
-                    dob = "2005-07-21",
-                    cnicOrBForm = "42201-7654321-2",
-                    studentMobile = "+92 334 5678901",
-                    parentMobile = "+92 333 1122334",
-                    whatsappNumber = "+92 334 5678901",
-                    address = "A-45, Gulistan-e-Jauhar",
-                    city = "Karachi",
-                    photoUri = "",
-                    courseId = 6,
-                    courseName = "Graphic Designing",
-                    batchName = "Batch-GD-Noon",
-                    timing = "12:00 PM - 02:00 PM",
-                    admissionDate = "2026-09-05",
-                    courseFee = 18000.0,
-                    discount = 0.0,
-                    finalFee = 18000.0,
-                    paidFee = 18000.0,
-                    remainingFee = 0.0,
-                    status = "Active",
-                    notes = "Fee fully cleared."
-                )
-            )
-            database.studentDao().insertAll(students)
-
-            // Initial Fee Payments
-            val payments = listOf(
-                FeePayment(
-                    id = 1,
-                    receiptNo = "REC-2026-00001",
-                    studentId = 1,
-                    studentRollNo = "AG-2026-0001",
-                    studentName = "Muhammad Hamza",
-                    fatherName = "Tariq Mahmood",
-                    courseName = "Android App Development",
-                    batchName = "Batch-AND-Pro",
-                    totalFee = 32000.0,
-                    previousPaid = 0.0,
-                    paidAmount = 20000.0,
-                    newTotalPaid = 20000.0,
-                    remainingFee = 12000.0,
-                    paymentDate = System.currentTimeMillis() - 86400000L * 10,
-                    paymentMethod = "Bank Transfer",
-                    remarks = "1st Installment",
-                    receivedBy = "Admin",
-                    smsStatus = "Sent"
-                ),
-                FeePayment(
-                    id = 2,
-                    receiptNo = "REC-2026-00002",
-                    studentId = 2,
-                    studentRollNo = "AG-2026-0002",
-                    studentName = "Zainab Fatima",
-                    fatherName = "Rashid Ali",
-                    courseName = "Graphic Designing",
-                    batchName = "Batch-GD-Noon",
-                    totalFee = 18000.0,
-                    previousPaid = 0.0,
-                    paidAmount = 18000.0,
-                    newTotalPaid = 18000.0,
-                    remainingFee = 0.0,
-                    paymentDate = System.currentTimeMillis() - 86400000L * 5,
-                    paymentMethod = "Cash",
-                    remarks = "Lump sum complete payment",
-                    receivedBy = "Admin",
-                    smsStatus = "Sent"
-                )
-            )
-            database.feePaymentDao().insertAll(payments)
-
-            // Initial Certificate for demo/testing
-            val cert = Certificate(
-                id = 1,
-                certificateNo = "AG-CERT-2026-001",
-                studentId = 2,
-                studentRollNo = "AG-2026-0002",
-                studentName = "Zainab Fatima",
-                fatherName = "Rashid Ali",
-                courseName = "Graphic Designing",
-                duration = "3 Months",
-                startDate = "2026-06-01",
-                completionDate = "2026-09-01",
-                grade = "A+",
-                issueDate = "2026-09-05",
-                customDescription = "has demonstrated outstanding creativity, brand design proficiency, and completed all capstone projects with distinction.",
-                directorName = "Engr. Al Ghazi",
-                teacherName = "Sir Daniyal Ali"
-            )
-            database.certificateDao().insertCertificate(cert)
         }
     }
 }

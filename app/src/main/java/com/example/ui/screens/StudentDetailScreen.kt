@@ -1,5 +1,14 @@
 package com.example.ui.screens
 
+import android.graphics.Bitmap
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import java.io.File
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,12 +29,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.CardMembership
+import androidx.compose.material.icons.filled.Collections
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Receipt
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -39,6 +52,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -90,6 +104,142 @@ fun StudentDetailScreen(
 
     var selectedTab by remember { mutableIntStateOf(0) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showPhotoUploadDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null && student != null) {
+            try {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    val dir = File(context.filesDir, "student_photos")
+                    if (!dir.exists()) dir.mkdirs()
+                    val destFile = File(dir, "student_${student.id}_${System.currentTimeMillis()}.jpg")
+                    destFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                    viewModel.updateStudent(student.copy(photoUri = destFile.absolutePath)) {}
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap != null && student != null) {
+            try {
+                val dir = File(context.filesDir, "student_photos")
+                if (!dir.exists()) dir.mkdirs()
+                val destFile = File(dir, "student_cam_${student.id}_${System.currentTimeMillis()}.jpg")
+                destFile.outputStream().use { output ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, output)
+                }
+                viewModel.updateStudent(student.copy(photoUri = destFile.absolutePath)) {}
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    if (showPhotoUploadDialog && student != null) {
+        AlertDialog(
+            onDismissRequest = { showPhotoUploadDialog = false },
+            title = {
+                Text(
+                    "Update Student Photo (تصویر تبدیل کریں)",
+                    color = GoldPrimary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        "Upload or update photo for ${student.name}:",
+                        color = TextSecondaryDark,
+                        fontSize = 13.sp
+                    )
+
+                    // Option 1: Camera
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                showPhotoUploadDialog = false
+                                cameraLauncher.launch(null)
+                            },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = NavyLight)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null, tint = GoldPrimary, modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("Take Photo with Camera", color = TextPrimaryDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                Text("کیمرہ سے تصویر کھینچیں", color = TextSecondaryDark, fontSize = 11.sp)
+                            }
+                        }
+                    }
+
+                    // Option 2: Gallery
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                showPhotoUploadDialog = false
+                                photoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = NavyLight)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Collections, contentDescription = null, tint = GoldPrimary, modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("Choose from Gallery", color = TextPrimaryDark, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                Text("گیلری سے تصویر منتخب کریں", color = TextSecondaryDark, fontSize = 11.sp)
+                            }
+                        }
+                    }
+
+                    if (student.photoUri.isNotBlank()) {
+                        OutlinedButton(
+                            onClick = {
+                                showPhotoUploadDialog = false
+                                viewModel.updateStudent(student.copy(photoUri = "")) {}
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = null, tint = DangerRed, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Remove Photo", color = DangerRed)
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showPhotoUploadDialog = false }) {
+                    Text("Cancel", color = TextSecondaryDark)
+                }
+            },
+            containerColor = NavyCard,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
 
     if (student == null) {
         Box(
@@ -163,18 +313,48 @@ fun StudentDetailScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
-                                    .size(60.dp)
-                                    .clip(CircleShape)
-                                    .background(NavyLight)
-                                    .border(2.dp, GoldPrimary, CircleShape),
-                                contentAlignment = Alignment.Center
+                                    .size(72.dp)
+                                    .clickable { showPhotoUploadDialog = true },
+                                contentAlignment = Alignment.BottomEnd
                             ) {
-                                Text(
-                                    text = student.name.take(2).uppercase(),
-                                    color = GoldBright,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(72.dp)
+                                        .clip(CircleShape)
+                                        .background(NavyLight)
+                                        .border(2.dp, GoldPrimary, CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (student.photoUri.isNotBlank() && File(student.photoUri).exists()) {
+                                        AsyncImage(
+                                            model = File(student.photoUri),
+                                            contentDescription = student.name,
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    } else {
+                                        Text(
+                                            text = student.name.take(2).uppercase(),
+                                            color = GoldBright,
+                                            fontSize = 22.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(CircleShape)
+                                        .background(GoldPrimary),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CameraAlt,
+                                        contentDescription = "Change Photo",
+                                        tint = NavyDark,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
                             }
                             Spacer(modifier = Modifier.width(14.dp))
                             Column(modifier = Modifier.weight(1f)) {
@@ -195,6 +375,23 @@ fun StudentDetailScreen(
                                     color = TextSecondaryDark,
                                     fontSize = 12.sp
                                 )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    modifier = Modifier
+                                        .clickable { showPhotoUploadDialog = true }
+                                        .background(NavyLight, RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.AddAPhoto, contentDescription = null, tint = GoldPrimary, modifier = Modifier.size(12.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        if (student.photoUri.isBlank()) "Upload Photo" else "Change Photo",
+                                        color = GoldPrimary,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
                             }
                         }
 

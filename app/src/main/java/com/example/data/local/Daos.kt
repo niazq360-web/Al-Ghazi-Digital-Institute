@@ -107,6 +107,9 @@ interface StudentDao {
 
     @Delete
     suspend fun deleteStudent(student: Student)
+
+    @Query("DELETE FROM students")
+    suspend fun deleteAllStudents()
 }
 
 @Dao
@@ -140,6 +143,9 @@ interface FeePaymentDao {
 
     @Delete
     suspend fun deletePayment(payment: FeePayment)
+
+    @Query("DELETE FROM fee_payments")
+    suspend fun deleteAllPayments()
 }
 
 @Dao
@@ -164,6 +170,9 @@ interface TeacherDao {
 
     @Delete
     suspend fun deleteTeacher(teacher: Teacher)
+
+    @Query("DELETE FROM teachers")
+    suspend fun deleteAllTeachers()
 }
 
 @Dao
@@ -185,6 +194,9 @@ interface SalaryPaymentDao {
 
     @Delete
     suspend fun deleteSalary(salary: SalaryPayment)
+
+    @Query("DELETE FROM salary_payments")
+    suspend fun deleteAllSalaries()
 }
 
 @Dao
@@ -209,6 +221,9 @@ interface ExpenseDao {
 
     @Delete
     suspend fun deleteExpense(expense: Expense)
+
+    @Query("DELETE FROM expenses")
+    suspend fun deleteAllExpenses()
 }
 
 @Dao
@@ -233,6 +248,9 @@ interface AttendanceDao {
 
     @Delete
     suspend fun deleteAttendance(attendance: Attendance)
+
+    @Query("DELETE FROM attendance")
+    suspend fun deleteAllAttendance()
 }
 
 @Dao
@@ -248,6 +266,9 @@ interface CourseProgressDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAll(list: List<CourseProgress>)
+
+    @Query("DELETE FROM course_progress")
+    suspend fun deleteAllProgress()
 }
 
 @Dao
@@ -266,6 +287,9 @@ interface TestResultDao {
 
     @Delete
     suspend fun deleteResult(result: TestResult)
+
+    @Query("DELETE FROM test_results")
+    suspend fun deleteAllTestResults()
 }
 
 @Dao
@@ -287,6 +311,9 @@ interface CertificateDao {
 
     @Delete
     suspend fun deleteCertificate(certificate: Certificate)
+
+    @Query("DELETE FROM certificates")
+    suspend fun deleteAllCertificates()
 }
 
 @Dao

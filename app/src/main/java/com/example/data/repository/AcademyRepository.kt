@@ -25,7 +25,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-class AcademyRepository(context: Context) {
+class AcademyRepository(private val context: Context) {
 
     private val db = AppDatabase.getDatabase(context)
     private val settingsDao = db.settingsDao()
@@ -499,5 +499,29 @@ class AcademyRepository(context: Context) {
             e.printStackTrace()
             false
         }
+    }
+
+    suspend fun clearAllRecords() = withContext(Dispatchers.IO) {
+        studentDao.deleteAllStudents()
+        feePaymentDao.deleteAllPayments()
+        expenseDao.deleteAllExpenses()
+        attendanceDao.deleteAllAttendance()
+        courseProgressDao.deleteAllProgress()
+        testResultDao.deleteAllTestResults()
+        certificateDao.deleteAllCertificates()
+        salaryPaymentDao.deleteAllSalaries()
+
+        // Clean up any uploaded student photos from internal storage
+        try {
+            val photoDir = java.io.File(context.filesDir, "student_photos")
+            if (photoDir.exists()) {
+                photoDir.deleteRecursively()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        val s = getSettings()
+        updateSettings(s.copy(nextReceiptSeq = 1, nextCertSeq = 1))
     }
 }

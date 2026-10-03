@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Print
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.filled.SimCard
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.AlertDialog
+import com.example.ui.components.AppConfirmationDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -105,6 +107,21 @@ fun SettingsScreen(
     var paperWidth by remember(settings) { mutableStateOf(settings.printerPaperWidth) }
     var receiptFooter by remember(settings) { mutableStateOf(settings.receiptFooterText) }
     var adminPassword by remember(settings) { mutableStateOf(settings.adminPasswordHash) }
+    var showResetDialog by remember { mutableStateOf(false) }
+
+    if (showResetDialog) {
+        AppConfirmationDialog(
+            title = "Wipe All Records? / تمام پرانے ریکارڈز ختم کریں؟",
+            message = "This will permanently delete all student admissions, fee payments, attendance, and expense records so the academy starts fresh with 0 records. Academy profile and courses will be kept. Proceed?",
+            confirmText = "Yes, Clear All Records",
+            isDestructive = true,
+            onConfirm = {
+                viewModel.clearAllRecords()
+                showResetDialog = false
+            },
+            onDismiss = { showResetDialog = false }
+        )
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -387,6 +404,41 @@ fun SettingsScreen(
                         label = "Admin PIN / Master Password",
                         testTag = "input_admin_password"
                     )
+                }
+            }
+        }
+
+        // Data Reset / Wipe Records Card
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .border(1.dp, DangerRed.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = NavyCard)
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.DeleteForever, contentDescription = null, tint = DangerRed)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Reset / Clear All Records (تمام ریکارڈ ختم کریں)", color = DangerRed, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+                    Text(
+                        "Delete all existing student enrollments, fee records, attendance, and expense entries so you can start completely fresh.",
+                        color = TextSecondaryDark,
+                        fontSize = 12.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Button(
+                        onClick = { showResetDialog = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = DangerRed, contentColor = Color.White),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.testTag("wipe_all_records_btn")
+                    ) {
+                        Icon(Icons.Default.DeleteForever, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Wipe All Records (صفائی تمام ریکارڈز)", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
                 }
             }
         }

@@ -1,5 +1,11 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
+import java.io.File
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -193,18 +199,64 @@ fun CollectFeeScreen(
                                     .background(NavyLight, RoundedCornerShape(12.dp))
                                     .padding(12.dp)
                             ) {
-                                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Text("Total Course Fee:", color = TextSecondaryDark, fontSize = 12.sp)
-                                        Text("Rs. ${String.format(Locale.US, "%,.0f", totalFee)}", color = TextPrimaryDark, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(52.dp)
+                                            .clip(CircleShape)
+                                            .background(NavyCard)
+                                            .border(1.5.dp, GoldPrimary, CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (selectedStudent!!.photoUri.isNotBlank() && File(selectedStudent!!.photoUri).exists()) {
+                                            AsyncImage(
+                                                model = File(selectedStudent!!.photoUri),
+                                                contentDescription = selectedStudent!!.name,
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        } else {
+                                            Text(
+                                                text = selectedStudent!!.name.take(2).uppercase(),
+                                                color = GoldBright,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 16.sp
+                                            )
+                                        }
                                     }
-                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Text("Already Paid:", color = TextSecondaryDark, fontSize = 12.sp)
-                                        Text("Rs. ${String.format(Locale.US, "%,.0f", alreadyPaid)}", color = SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text("Total Course Fee:", color = TextSecondaryDark, fontSize = 11.sp)
+                                            Text("Rs. ${String.format(Locale.US, "%,.0f", totalFee)}", color = TextPrimaryDark, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        }
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text("Already Paid:", color = TextSecondaryDark, fontSize = 11.sp)
+                                            Text("Rs. ${String.format(Locale.US, "%,.0f", alreadyPaid)}", color = SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        }
+                                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text("Remaining Balance:", color = TextSecondaryDark, fontSize = 11.sp)
+                                            Text("Rs. ${String.format(Locale.US, "%,.0f", currentRemaining)}", color = if (currentRemaining > 0) DangerRed else SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        }
                                     }
-                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Text("Current Remaining Fee:", color = TextSecondaryDark, fontSize = 12.sp)
-                                        Text("Rs. ${String.format(Locale.US, "%,.0f", currentRemaining)}", color = if (currentRemaining > 0) DangerRed else SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                }
+                            }
+                        } else if (allStudents.isEmpty()) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(NavyLight, RoundedCornerShape(12.dp))
+                                    .padding(14.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("No students currently registered.", color = TextSecondaryDark, fontSize = 12.sp)
+                                    Button(
+                                        onClick = { onNavigate(com.example.ui.navigation.Screen.AddEditStudent.createRoute()) },
+                                        colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = NavyDark),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Text("Register Student First", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }

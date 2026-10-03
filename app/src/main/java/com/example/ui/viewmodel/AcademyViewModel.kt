@@ -531,4 +531,11 @@ class AcademyViewModel(application: Application) : AndroidViewModel(application)
             syncRepository.performCloudSync()
         }
     }
+
+    fun clearAllRecords() {
+        viewModelScope.launch {
+            repository.clearAllRecords()
+            _userMessage.emit("All previous records have been cleared completely.")
+        }
+    }
 }
