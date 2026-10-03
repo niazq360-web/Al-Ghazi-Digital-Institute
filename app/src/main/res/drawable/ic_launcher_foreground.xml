@@ -1,0 +1,90 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Gold circular ring -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:pathData="M54,54m-34,0a34,34 0,1 1,68 0a34,34 0,1 1,-68 0" />
+
+    <!-- Center Dome & Crescent -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M54,26m-1.5,0a1.5,1.5 0,1 1,3 0a1.5,1.5 0,1 1,-3 0" />
+    <path
+        android:fillColor="#D4AF37"
+        android:pathData="M53.5,27.5 L54.5,27.5 L54.5,31 L53.5,31 Z" />
+
+    <!-- Center Grand Dome -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="1.5"
+        android:fillColor="#152C4D"
+        android:pathData="M44,45 C44,35 54,31 54,31 C54,31 64,35 64,45 Z" />
+
+    <!-- Left Dome -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="1"
+        android:fillColor="#102544"
+        android:pathData="M37,49 C37,41 42,39 42,39 C42,39 46,41 46,49 Z" />
+
+    <!-- Right Dome -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="1"
+        android:fillColor="#102544"
+        android:pathData="M62,49 C62,41 66,39 66,39 C66,39 71,41 71,49 Z" />
+
+    <!-- Left Minaret -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="1"
+        android:fillColor="#0E213D"
+        android:pathData="M31,38 L33,35 L35,38 L34,38 L34,58 L32,58 L32,38 Z" />
+
+    <!-- Right Minaret -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="1"
+        android:fillColor="#0E213D"
+        android:pathData="M73,38 L75,35 L77,38 L76,38 L76,58 L74,58 L74,38 Z" />
+
+    <!-- Islamic Arch Steps -->
+    <path
+        android:strokeColor="#E5B842"
+        android:strokeWidth="1.2"
+        android:fillColor="#00000000"
+        android:pathData="M44,69 L44,57 C44,51 54,47 54,47 C54,47 64,51 64,57 L64,69" />
+
+    <!-- Circuit lines -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="1"
+        android:fillColor="#00000000"
+        android:pathData="M51,69 L51,60 L54,57 L57,60 L57,69 M48,69 L48,63 L50,61 M60,69 L60,63 L58,61" />
+
+    <!-- Circuit dots -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M54,56m-1,0a1,1 0,1 1,2 0a1,1 0,1 1,-2 0" />
+
+    <!-- Base curve -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="1.2"
+        android:fillColor="#00000000"
+        android:pathData="M35,69 L40,73 L54,73 L68,73 L73,69" />
+
+    <!-- Golden Underline -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="1.2"
+        android:fillColor="#00000000"
+        android:pathData="M30,81 L78,81" />
+
+</vector>

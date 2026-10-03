@@ -1,0 +1,6 @@
+{
+  "name": "Al Ghazi Digital Institute",
+  "description": "Offline-first academy management system with fees, attendance, certificates, thermal receipts and cloud backup",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

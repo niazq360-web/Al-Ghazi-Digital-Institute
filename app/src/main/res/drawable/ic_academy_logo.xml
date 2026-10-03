@@ -1,0 +1,151 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="512dp"
+    android:height="512dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Dark Luxury Navy Circle Background -->
+    <path
+        android:fillColor="#0A192F"
+        android:pathData="M256,256m-240,0a240,240 0,1 1,480 0a240,240 0,1 1,-480 0" />
+
+    <!-- Outer Gold Ring -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="5"
+        android:fillColor="#00000000"
+        android:pathData="M256,256m-230,0a230,230 0,1 1,460 0a230,230 0,1 1,-460 0" />
+
+    <!-- Inner Subtle Gold Ring -->
+    <path
+        android:strokeColor="#C89B3C"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:pathData="M256,256m-220,0a220,220 0,1 1,440 0a220,220 0,1 1,-440 0" />
+
+    <!-- Subtle Tech Circuit Lines in Background -->
+    <path
+        android:strokeColor="#162B4D"
+        android:strokeWidth="1.5"
+        android:fillColor="#00000000"
+        android:pathData="M90,180 L140,180 L170,220 M422,180 L372,180 L342,220 M90,320 L150,320 M422,320 L362,320" />
+
+    <!-- Center Grand Dome & Arch Outline -->
+    <!-- Mosque Silhouette in Gold -->
+    <!-- Center Finial & Crescent -->
+    <path
+        android:fillColor="#E5B842"
+        android:pathData="M254,80 L258,80 L258,95 L254,95 Z" />
+    <path
+        android:fillColor="#E5B842"
+        android:pathData="M256,76m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
+
+    <!-- Main Center Dome -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="3.5"
+        android:fillColor="#102544"
+        android:pathData="M216,160 C216,115 256,98 256,98 C256,98 296,115 296,160 Z" />
+
+    <!-- Left Secondary Dome -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="2.5"
+        android:fillColor="#0E213D"
+        android:pathData="M180,180 C180,145 200,135 200,135 C200,135 220,145 220,180 Z" />
+
+    <!-- Right Secondary Dome -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="2.5"
+        android:fillColor="#0E213D"
+        android:pathData="M292,180 C292,145 312,135 312,135 C312,135 332,145 332,180 Z" />
+
+    <!-- Left Minaret -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="3"
+        android:fillColor="#0D203B"
+        android:pathData="M148,130 L156,115 L164,130 L160,130 L160,225 L152,225 L152,130 Z" />
+    <path
+        android:fillColor="#E5B842"
+        android:pathData="M156,108m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+
+    <!-- Right Minaret -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="3"
+        android:fillColor="#0D203B"
+        android:pathData="M348,130 L356,115 L364,130 L360,130 L360,225 L352,225 L352,130 Z" />
+    <path
+        android:fillColor="#E5B842"
+        android:pathData="M356,108m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+
+    <!-- Outer Mosque Complex Frame / Crest -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="3.5"
+        android:fillColor="#00000000"
+        android:pathData="M160,220 L160,195 L175,195 L175,175 L210,175 L210,150 L256,115 L302,150 L302,175 L337,175 L337,195 L352,195 L352,220" />
+
+    <!-- Inner Islamic Archway -->
+    <path
+        android:strokeColor="#E5B842"
+        android:strokeWidth="3.5"
+        android:fillColor="#081528"
+        android:pathData="M216,280 L216,220 C216,190 256,170 256,170 C256,170 296,190 296,220 L296,280" />
+
+    <!-- Outer Arch Frame Steps -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:pathData="M198,280 L198,230 C198,185 256,160 256,160 C256,160 314,185 314,230 L314,280" />
+
+    <!-- Circuit Board Traces Connecting Bottom To Arch (Digital Institute theme) -->
+    <!-- Center circuit traces -->
+    <path
+        android:strokeColor="#E5B842"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:pathData="M244,280 L244,235 L256,222 L268,235 L268,280" />
+    <path
+        android:strokeColor="#E5B842"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:pathData="M232,280 L232,248 L240,240" />
+    <path
+        android:strokeColor="#E5B842"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:pathData="M280,280 L280,248 L272,240" />
+
+    <!-- Circuit Nodes (Gold Dots) -->
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M256,220m-3,0a3,3 0,1 1,6 0a3,3 0,1 1,-6 0" />
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M240,240m-2.5,0a2.5,2.5 0,1 1,5 0a2.5,2.5 0,1 1,-5 0" />
+    <path
+        android:fillColor="#FFD700"
+        android:pathData="M272,240m-2.5,0a2.5,2.5 0,1 1,5 0a2.5,2.5 0,1 1,-5 0" />
+
+    <!-- Lower Circuit Base Border -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="3"
+        android:fillColor="#00000000"
+        android:pathData="M170,280 L195,295 L256,295 L317,295 L342,280" />
+
+    <!-- Horizontal Divider Line with Diamond Center -->
+    <path
+        android:strokeColor="#D4AF37"
+        android:strokeWidth="2.5"
+        android:fillColor="#00000000"
+        android:pathData="M130,405 L382,405" />
+    <path
+        android:fillColor="#E5B842"
+        android:pathData="M256,401 L260,405 L256,409 L252,405 Z" />
+
+</vector>

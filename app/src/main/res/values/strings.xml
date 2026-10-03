@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Al Ghazi Digital Institute</string>
+    <string name="institute_tagline">LEARN • PRACTICE • GROW</string>
+    <string name="default_admin_name">Admin</string>
+    <string name="default_phone">+92 300 1234567</string>
+    <string name="default_whatsapp">+92 300 1234567</string>
+    <string name="default_email">info@alghazi.edu.pk</string>
+    <string name="default_address">Main Campus, Al Ghazi Road, Pakistan</string>
+</resources>
