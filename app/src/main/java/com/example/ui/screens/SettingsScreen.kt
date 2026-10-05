@@ -1,6 +1,9 @@
 package com.example.ui.screens
 
 import android.bluetooth.BluetoothDevice
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,13 +21,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Bluetooth
+import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudSync
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
@@ -33,6 +44,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SimCard
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.AlertDialog
 import com.example.ui.components.AppConfirmationDialog
 import androidx.compose.material3.Button
@@ -43,6 +56,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
@@ -57,8 +71,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.AcademySettings
@@ -81,6 +100,8 @@ import com.example.ui.theme.TextPrimaryDark
 import com.example.ui.theme.TextSecondaryDark
 import com.example.ui.theme.WarningAmber
 import com.example.ui.viewmodel.AcademyViewModel
+import com.example.ui.viewmodel.OtpDeliveryChannel
+import com.example.ui.viewmodel.OtpFlowType
 import java.util.Locale
 
 @Composable
@@ -108,6 +129,7 @@ fun SettingsScreen(
     var receiptFooter by remember(settings) { mutableStateOf(settings.receiptFooterText) }
     var adminPassword by remember(settings) { mutableStateOf(settings.adminPasswordHash) }
     var showResetDialog by remember { mutableStateOf(false) }
+    var showChangePasswordOtpDialog by remember { mutableStateOf(false) }
 
     if (showResetDialog) {
         AppConfirmationDialog(
@@ -120,6 +142,272 @@ fun SettingsScreen(
                 showResetDialog = false
             },
             onDismiss = { showResetDialog = false }
+        )
+    }
+
+    if (showChangePasswordOtpDialog) {
+        val context = LocalContext.current
+        val clipboardManager = remember {
+            context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+        }
+        var otpMobile by remember {
+            mutableStateOf(if (settings.registeredMobile.isNotBlank()) settings.registeredMobile else settings.phoneNumber)
+        }
+        var otpChannel by remember { mutableStateOf(OtpDeliveryChannel.SMS) }
+        var otpSent by remember { mutableStateOf(false) }
+        var generatedOtpCode by remember { mutableStateOf("") }
+        var enteredOtp by remember { mutableStateOf("") }
+        var newPass by remember { mutableStateOf("") }
+        var confirmNewPass by remember { mutableStateOf("") }
+        var passVisible by remember { mutableStateOf(false) }
+        var dialogError by remember { mutableStateOf<String?>(null) }
+
+        AlertDialog(
+            onDismissRequest = { showChangePasswordOtpDialog = false },
+            containerColor = NavyCard,
+            shape = RoundedCornerShape(20.dp),
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Key, contentDescription = null, tint = GoldPrimary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        "Change Password via OTP\nاو ٹی پی کے ذریعے پاسورڈ تبدیل کریں",
+                        color = GoldPrimary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (!otpSent) {
+                        Text(
+                            "Receive an OTP on your mobile number or WhatsApp to set a new admin password.",
+                            color = TextSecondaryDark,
+                            fontSize = 12.sp
+                        )
+
+                        OutlinedTextField(
+                            value = otpMobile,
+                            onValueChange = {
+                                otpMobile = it
+                                dialogError = null
+                            },
+                            label = { Text("Mobile Number (موبائل نمبر)") },
+                            leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = GoldPrimary) },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = GoldPrimary,
+                                unfocusedBorderColor = NavyBorder,
+                                focusedTextColor = TextPrimaryDark,
+                                unfocusedTextColor = TextPrimaryDark,
+                                focusedContainerColor = NavyLight,
+                                unfocusedContainerColor = NavyLight
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(NavyLight, RoundedCornerShape(12.dp))
+                                .padding(8.dp)
+                        ) {
+                            Text("Send OTP via:", color = GoldPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth().clickable { otpChannel = OtpDeliveryChannel.SMS }
+                            ) {
+                                RadioButton(
+                                    selected = otpChannel == OtpDeliveryChannel.SMS,
+                                    onClick = { otpChannel = OtpDeliveryChannel.SMS },
+                                    colors = RadioButtonDefaults.colors(selectedColor = GoldPrimary)
+                                )
+                                Icon(Icons.Default.Message, contentDescription = null, tint = GoldPrimary, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Mobile SMS (ایس ایم ایس)", color = TextPrimaryDark, fontSize = 12.sp)
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth().clickable { otpChannel = OtpDeliveryChannel.WHATSAPP }
+                            ) {
+                                RadioButton(
+                                    selected = otpChannel == OtpDeliveryChannel.WHATSAPP,
+                                    onClick = { otpChannel = OtpDeliveryChannel.WHATSAPP },
+                                    colors = RadioButtonDefaults.colors(selectedColor = GoldPrimary)
+                                )
+                                Icon(Icons.Default.Chat, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("WhatsApp (واٹس ایپ میسج)", color = TextPrimaryDark, fontSize = 12.sp)
+                            }
+                        }
+                    } else {
+                        // OTP sent view
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = NavyLight),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("OTP sent to $otpMobile", color = SuccessGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("Code: $generatedOtpCode", color = GoldBright, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        TextButton(onClick = {
+                                            clipboardManager?.setPrimaryClip(ClipData.newPlainText("OTP", generatedOtpCode))
+                                        }) {
+                                            Text("Copy", color = GoldPrimary, fontSize = 11.sp)
+                                        }
+                                        TextButton(onClick = { enteredOtp = generatedOtpCode }) {
+                                            Text("Auto-Fill", color = GoldPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                                if (otpChannel == OtpDeliveryChannel.WHATSAPP) {
+                                    OutlinedButton(
+                                        onClick = { viewModel.openWhatsAppForOtp(otpMobile, generatedOtpCode, context) },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Icon(Icons.Default.Chat, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Open WhatsApp", color = SuccessGreen, fontSize = 11.sp)
+                                    }
+                                }
+                            }
+                        }
+
+                        OutlinedTextField(
+                            value = enteredOtp,
+                            onValueChange = { enteredOtp = it },
+                            label = { Text("6-Digit OTP Code") },
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = GoldPrimary,
+                                unfocusedBorderColor = NavyBorder,
+                                focusedTextColor = TextPrimaryDark,
+                                unfocusedTextColor = TextPrimaryDark,
+                                focusedContainerColor = NavyLight,
+                                unfocusedContainerColor = NavyLight
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = newPass,
+                            onValueChange = { newPass = it },
+                            label = { Text("New Password (نیا پاسورڈ)") },
+                            singleLine = true,
+                            visualTransformation = if (passVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            trailingIcon = {
+                                IconButton(onClick = { passVisible = !passVisible }) {
+                                    Icon(if (passVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, contentDescription = null, tint = GoldPrimary)
+                                }
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = GoldPrimary,
+                                unfocusedBorderColor = NavyBorder,
+                                focusedTextColor = TextPrimaryDark,
+                                unfocusedTextColor = TextPrimaryDark,
+                                focusedContainerColor = NavyLight,
+                                unfocusedContainerColor = NavyLight
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = confirmNewPass,
+                            onValueChange = { confirmNewPass = it },
+                            label = { Text("Confirm New Password (پاسورڈ کی تصدیق)") },
+                            singleLine = true,
+                            visualTransformation = if (passVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = GoldPrimary,
+                                unfocusedBorderColor = NavyBorder,
+                                focusedTextColor = TextPrimaryDark,
+                                unfocusedTextColor = TextPrimaryDark,
+                                focusedContainerColor = NavyLight,
+                                unfocusedContainerColor = NavyLight
+                            ),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    if (dialogError != null) {
+                        Text(dialogError!!, color = DangerRed, fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                    }
+                }
+            },
+            confirmButton = {
+                if (!otpSent) {
+                    Button(
+                        onClick = {
+                            if (otpMobile.isBlank() || otpMobile.length < 9) {
+                                dialogError = "Please enter valid mobile number"
+                                return@Button
+                            }
+                            val code = viewModel.sendOtp(otpMobile, otpChannel, OtpFlowType.CHANGE_PASSWORD, context)
+                            generatedOtpCode = code
+                            otpSent = true
+                            dialogError = null
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = NavyDark),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Send OTP (او ٹی پی بھیجیں)", fontWeight = FontWeight.Bold)
+                    }
+                } else {
+                    Button(
+                        onClick = {
+                            if (!viewModel.verifyOtp(enteredOtp)) {
+                                dialogError = "Incorrect OTP code."
+                                return@Button
+                            }
+                            if (newPass.length < 4) {
+                                dialogError = "Password must be at least 4 characters."
+                                return@Button
+                            }
+                            if (newPass != confirmNewPass) {
+                                dialogError = "Passwords do not match."
+                                return@Button
+                            }
+
+                            viewModel.resetPasswordWithOtp(otpMobile, newPass)
+                            adminPassword = newPass
+                            showChangePasswordOtpDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = NavyDark),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Save Password (نیا پاسورڈ محفوظ کریں)", fontWeight = FontWeight.Bold)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showChangePasswordOtpDialog = false }) {
+                    Text("Cancel (منسوخ)", color = TextSecondaryDark)
+                }
+            }
         )
     }
 
@@ -396,14 +684,58 @@ fun SettingsScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Security, contentDescription = null, tint = GoldPrimary)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Admin Security Password", color = GoldPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("Admin Security & Mobile Account", color = GoldPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
+
+                    val activeMobile = if (settings.registeredMobile.isNotBlank()) settings.registeredMobile else settings.phoneNumber
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(NavyLight, RoundedCornerShape(10.dp))
+                            .padding(10.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Phone, contentDescription = null, tint = GoldPrimary, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text("Registered Mobile for OTP:", color = TextSecondaryDark, fontSize = 11.sp)
+                                Text(activeMobile, color = TextPrimaryDark, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
+                        }
+                    }
+
                     AppTextField(
                         value = adminPassword,
                         onValueChange = { adminPassword = it },
                         label = "Admin PIN / Master Password",
                         testTag = "input_admin_password"
                     )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = { showChangePasswordOtpDialog = true },
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f).testTag("change_password_otp_btn")
+                        ) {
+                            Icon(Icons.Default.Key, contentDescription = null, tint = GoldPrimary, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Change Pass via OTP", color = GoldPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = { viewModel.logout() },
+                            colors = ButtonDefaults.buttonColors(containerColor = NavyLight, contentColor = TextPrimaryDark),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f).testTag("sign_out_settings_btn")
+                        ) {
+                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Lock / Sign Out", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
             }
         }

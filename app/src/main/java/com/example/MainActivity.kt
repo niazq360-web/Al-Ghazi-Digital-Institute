@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.CardMembership
@@ -307,6 +308,15 @@ fun MainAppContent() {
                             navController.navigate(Screen.Settings.route)
                         }
                     )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    DrawerNavRow(
+                        title = "Lock / Sign Out (لاگ آؤٹ)",
+                        icon = Icons.AutoMirrored.Filled.Logout,
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            viewModel.logout()
+                        }
+                    )
                 }
             }
         ) {
@@ -376,6 +386,16 @@ fun MainAppContent() {
                                             onClick = {
                                                 showMoreMenu = false
                                                 navController.navigate(Screen.Settings.route)
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Lock / Sign Out (لاگ آؤٹ)", color = GoldBright) },
+                                            leadingIcon = {
+                                                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = GoldBright)
+                                            },
+                                            onClick = {
+                                                showMoreMenu = false
+                                                viewModel.logout()
                                             }
                                         )
                                     }

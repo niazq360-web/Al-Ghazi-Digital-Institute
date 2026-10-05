@@ -33,7 +33,9 @@ data class AcademySettings(
     val sessionMonthsDuration: Int = 12, // 12-month record retention guarantee
     val sessionRenewalPrompted: Boolean = false,
     val lastSyncTimestamp: Long = 0L,
-    val cloudSyncEnabled: Boolean = true
+    val cloudSyncEnabled: Boolean = true,
+    val registeredMobile: String = "+92 300 1234567",
+    val isAccountRegistered: Boolean = false
 )
 
 @Entity(tableName = "courses")

@@ -89,6 +89,7 @@ fun DashboardScreen(
     val allStudents by viewModel.allStudents.collectAsState()
     val activeCourses by viewModel.activeCourses.collectAsState()
     val allPayments by viewModel.allPayments.collectAsState()
+    val courseFeeSummaries by viewModel.courseFeeSummaries.collectAsState()
     val totalCollected by viewModel.totalCollectedFee.collectAsState()
     val totalPending by viewModel.totalPendingFee.collectAsState()
     val totalExpenses by viewModel.totalExpenses.collectAsState()
@@ -375,6 +376,120 @@ fun DashboardScreen(
                 income = totalCollected,
                 expenses = combinedExpenses
             )
+        }
+
+        // Course-wise Admissions & Fee Breakdown (CIT, Trading, etc.)
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Course-wise Admissions & Fees",
+                    color = GoldPrimary,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "View Courses",
+                    color = TextSecondaryDark,
+                    fontSize = 12.sp,
+                    modifier = Modifier.clickable { onNavigate(Screen.Courses.route) }
+                )
+            }
+        }
+
+        item {
+            if (courseFeeSummaries.isEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = NavyCard),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text(
+                        text = "No active course records found.",
+                        color = TextSecondaryDark,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(14.dp)
+                    )
+                }
+            } else {
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(courseFeeSummaries) { summary ->
+                        Card(
+                            modifier = Modifier
+                                .width(220.dp)
+                                .border(1.dp, NavyBorder, RoundedCornerShape(14.dp))
+                                .clickable {
+                                    viewModel.setFilterCourse(summary.courseName)
+                                    onNavigate(Screen.Students.route)
+                                },
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = NavyCard)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = summary.courseName,
+                                        color = TextPrimaryDark,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(GoldPrimary.copy(alpha = 0.2f))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "${summary.studentCount} Students",
+                                            color = GoldBright,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Paid (وصول):", color = TextSecondaryDark, fontSize = 11.sp)
+                                    Text(
+                                        text = "Rs. ${String.format(Locale.US, "%,.0f", summary.paidFee)}",
+                                        color = SuccessGreen,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text("Balance (بقایا):", color = TextSecondaryDark, fontSize = 11.sp)
+                                    Text(
+                                        text = "Rs. ${String.format(Locale.US, "%,.0f", summary.remainingFee)}",
+                                        color = if (summary.remainingFee > 0) DangerRed else SuccessGreen,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // Recent Fee Collections

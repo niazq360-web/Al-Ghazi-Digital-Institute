@@ -176,4 +176,13 @@ class SmsService(private val context: Context) {
             e.printStackTrace()
         }
     }
+
+    fun sendSms(
+        recipientPhone: String,
+        messageText: String,
+        selectedSim: SimCardInfo? = null,
+        onResult: (SmsResult) -> Unit = {}
+    ) {
+        sendFeeSms(recipientPhone, messageText, selectedSim, onResult)
+    }
 }

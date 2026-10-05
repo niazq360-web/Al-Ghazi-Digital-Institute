@@ -3,6 +3,8 @@ package com.example.ui.viewmodel
 import android.app.Application
 import android.bluetooth.BluetoothDevice
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.AcademyApplication
@@ -38,6 +40,35 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
+enum class OtpDeliveryChannel {
+    SMS,
+    WHATSAPP
+}
+
+enum class OtpFlowType {
+    REGISTRATION,
+    FORGOT_PASSWORD,
+    CHANGE_PASSWORD
+}
+
+data class ActiveOtpState(
+    val code: String,
+    val mobileNumber: String,
+    val channel: OtpDeliveryChannel,
+    val flowType: OtpFlowType,
+    val timestamp: Long = System.currentTimeMillis(),
+    val expiresAt: Long = System.currentTimeMillis() + 5 * 60 * 1000
+)
+
+data class CourseStudentFeeSummary(
+    val courseName: String,
+    val studentCount: Int,
+    val totalFee: Double,
+    val paidFee: Double,
+    val remainingFee: Double,
+    val students: List<Student> = emptyList()
+)
+
 class AcademyViewModel(application: Application) : AndroidViewModel(application) {
 
     private val app = application as AcademyApplication
@@ -49,8 +80,8 @@ class AcademyViewModel(application: Application) : AndroidViewModel(application)
     private val pdfCertGen = app.pdfCertificateGenerator
     private val pdfReportGen = app.pdfReportGenerator
 
-    // Auth State
-    private val _isLoggedIn = MutableStateFlow(true) // Auto-login for seamless offline operation, lockable with Admin PIN
+    // Auth State - Locked on every app start as requested
+    private val _isLoggedIn = MutableStateFlow(false)
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
     private val _userMessage = MutableSharedFlow<String>()
@@ -100,6 +131,30 @@ class AcademyViewModel(application: Application) : AndroidViewModel(application)
                     s.studentMobile.contains(query, ignoreCase = true)
             val matchesCourse = courseFilter == null || s.courseName == courseFilter
             matchesQuery && matchesCourse
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Course-wise Student & Fee Segregation Summaries
+    val courseFeeSummaries: StateFlow<List<CourseStudentFeeSummary>> = combine(
+        allStudents,
+        courses
+    ) { studentsList, coursesList ->
+        val courseNames = (coursesList.map { it.name.trim() } + studentsList.map { it.courseName.trim() })
+            .distinct()
+            .filter { it.isNotBlank() }
+        courseNames.map { cName ->
+            val courseStudents = studentsList.filter { it.courseName.trim().equals(cName, ignoreCase = true) }
+            val total = courseStudents.sumOf { if (it.finalFee > 0) it.finalFee else it.courseFee }
+            val paid = courseStudents.sumOf { it.paidFee }
+            val remaining = courseStudents.sumOf { it.remainingFee }
+            CourseStudentFeeSummary(
+                courseName = cName,
+                studentCount = courseStudents.size,
+                totalFee = total,
+                paidFee = paid,
+                remainingFee = remaining,
+                students = courseStudents
+            )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -162,11 +217,31 @@ class AcademyViewModel(application: Application) : AndroidViewModel(application)
         loadHardwareInfo()
     }
 
+    // OTP & Auth States
+    private val _activeOtp = MutableStateFlow<ActiveOtpState?>(null)
+    val activeOtp: StateFlow<ActiveOtpState?> = _activeOtp.asStateFlow()
+
+    private val _isOtpVerified = MutableStateFlow(false)
+    val isOtpVerified: StateFlow<Boolean> = _isOtpVerified.asStateFlow()
+
     fun loadHardwareInfo() {
         val sims = smsService.getAvailableSims()
         _availableSims.value = sims
         _selectedSim.value = sims.firstOrNull()
         _availablePrinters.value = printerService.getPairedPrinters()
+    }
+
+    fun isPhoneMatch(p1: String, p2: String): Boolean {
+        val clean1 = p1.filter { it.isDigit() }
+        val clean2 = p2.filter { it.isDigit() }
+        if (clean1.isBlank() || clean2.isBlank()) return false
+        if (clean1 == clean2) return true
+        val tail10_1 = clean1.takeLast(10)
+        val tail10_2 = clean2.takeLast(10)
+        if (tail10_1.length >= 7 && tail10_1 == tail10_2) return true
+        val tail7_1 = clean1.takeLast(7)
+        val tail7_2 = clean2.takeLast(7)
+        return tail7_1.length >= 7 && tail7_1 == tail7_2
     }
 
     fun login(pin: String): Boolean {
@@ -175,6 +250,155 @@ class AcademyViewModel(application: Application) : AndroidViewModel(application)
             return true
         }
         return false
+    }
+
+    fun loginWithMobileAndPassword(mobileNumber: String, password: String): Boolean {
+        val inputClean = mobileNumber.filter { it.isDigit() }
+        val regMobile = settings.value.registeredMobile
+        val academyPhone = settings.value.phoneNumber
+
+        // Check mobile matching: matches registeredMobile, or academy phoneNumber, or if account not yet set up
+        val mobileMatches = inputClean.isNotBlank() && (
+            isPhoneMatch(mobileNumber, regMobile) ||
+            isPhoneMatch(mobileNumber, academyPhone) ||
+            !settings.value.isAccountRegistered
+        )
+
+        // Check password matching
+        val passMatches = if (settings.value.isAccountRegistered) {
+            password.trim() == settings.value.adminPasswordHash
+        } else {
+            password.trim() == settings.value.adminPasswordHash || password.trim() == "admin123"
+        }
+
+        if (mobileMatches && passMatches) {
+            _isLoggedIn.value = true
+            return true
+        }
+        return false
+    }
+
+    private fun formatPhoneForWhatsApp(mobileNumber: String): String {
+        val digits = mobileNumber.filter { it.isDigit() }
+        return when {
+            digits.startsWith("92") -> digits
+            digits.startsWith("0") && digits.length >= 11 -> "92" + digits.substring(1)
+            digits.startsWith("3") && digits.length == 10 -> "92$digits"
+            else -> digits
+        }
+    }
+
+    fun openWhatsAppForOtp(mobileNumber: String, code: String, context: Context) {
+        val academyTitle = settings.value.academyName.ifBlank { "Al Ghazi Digital Institute" }
+        val msg = "Your OTP verification code for $academyTitle is: $code. Valid for 5 minutes. Do not share with anyone."
+        val waPhone = formatPhoneForWhatsApp(mobileNumber)
+        val encodedText = Uri.encode(msg)
+        val waUrl = "https://api.whatsapp.com/send?phone=$waPhone&text=$encodedText"
+        try {
+            val waIntent = Intent(Intent.ACTION_VIEW, Uri.parse(waUrl)).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(waIntent)
+        } catch (e: Exception) {
+            try {
+                val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(waUrl)).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(browserIntent)
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+            }
+        }
+    }
+
+    fun sendOtp(
+        mobileNumber: String,
+        channel: OtpDeliveryChannel,
+        flowType: OtpFlowType,
+        context: Context
+    ): String {
+        val code = (100000..999999).random().toString()
+        val expiry = System.currentTimeMillis() + 5 * 60 * 1000 // 5 minutes
+        val state = ActiveOtpState(
+            code = code,
+            mobileNumber = mobileNumber.trim(),
+            channel = channel,
+            flowType = flowType,
+            expiresAt = expiry
+        )
+        _activeOtp.value = state
+        _isOtpVerified.value = false
+
+        val academyTitle = settings.value.academyName.ifBlank { "Al Ghazi Digital Institute" }
+        val msg = "Your OTP verification code for $academyTitle is: $code. Valid for 5 minutes. Do not share with anyone."
+
+        if (channel == OtpDeliveryChannel.SMS) {
+            // Send via SIM SMS
+            smsService.sendSms(mobileNumber.trim(), msg)
+            viewModelScope.launch {
+                _userMessage.emit("OTP code $code sent via SMS to $mobileNumber")
+            }
+        } else {
+            // Send via WhatsApp
+            openWhatsAppForOtp(mobileNumber, code, context)
+            val waPhone = formatPhoneForWhatsApp(mobileNumber)
+            viewModelScope.launch {
+                _userMessage.emit("OTP code $code generated! Opening WhatsApp chat for $waPhone...")
+            }
+        }
+
+        return code
+    }
+
+    fun verifyOtp(enteredCode: String): Boolean {
+        val active = _activeOtp.value
+        if (active != null && active.code == enteredCode.trim() && System.currentTimeMillis() <= active.expiresAt) {
+            _isOtpVerified.value = true
+            viewModelScope.launch {
+                _userMessage.emit("OTP verified successfully!")
+            }
+            return true
+        }
+        viewModelScope.launch {
+            _userMessage.emit("Invalid or expired OTP code.")
+        }
+        return false
+    }
+
+    fun registerUserAccount(name: String, mobileNumber: String, password: String): Boolean {
+        val current = settings.value
+        val updated = current.copy(
+            ownerName = name.trim().ifBlank { current.ownerName },
+            phoneNumber = mobileNumber.trim(),
+            whatsappNumber = mobileNumber.trim(),
+            registeredMobile = mobileNumber.trim(),
+            adminPasswordHash = password.trim(),
+            isAccountRegistered = true
+        )
+        viewModelScope.launch {
+            repository.updateSettings(updated)
+            _userMessage.emit("Account registered successfully! Welcome ${updated.ownerName}.")
+        }
+        _activeOtp.value = null
+        _isOtpVerified.value = false
+        _isLoggedIn.value = true
+        return true
+    }
+
+    fun resetPasswordWithOtp(mobileNumber: String, newPassword: String): Boolean {
+        val current = settings.value
+        val updated = current.copy(
+            adminPasswordHash = newPassword.trim(),
+            registeredMobile = if (current.registeredMobile.isBlank()) mobileNumber.trim() else current.registeredMobile,
+            isAccountRegistered = true
+        )
+        viewModelScope.launch {
+            repository.updateSettings(updated)
+            _userMessage.emit("Password updated successfully! Please sign in with your new password.")
+        }
+        _activeOtp.value = null
+        _isOtpVerified.value = false
+        return true
     }
 
     fun logout() {

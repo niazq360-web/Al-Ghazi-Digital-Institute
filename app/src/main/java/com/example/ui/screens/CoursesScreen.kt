@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Payment
+import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -29,8 +36,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
@@ -52,11 +61,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.Course
 import com.example.ui.components.AcademyHeaderLogo
 import com.example.ui.components.AppConfirmationDialog
+import com.example.ui.navigation.Screen
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.GoldBright
 import com.example.ui.theme.GoldPrimary
@@ -78,11 +89,13 @@ fun CoursesScreen(
     onNavigate: (String) -> Unit
 ) {
     val courses by viewModel.courses.collectAsState()
+    val courseFeeSummaries by viewModel.courseFeeSummaries.collectAsState()
     val settings by viewModel.settings.collectAsState()
 
     var showAddDialog by remember { mutableStateOf(false) }
     var editingCourse by remember { mutableStateOf<Course?>(null) }
     var courseToDelete by remember { mutableStateOf<Course?>(null) }
+    var expandedCourseId by remember { mutableStateOf<Long?>(null) }
 
     if (courseToDelete != null) {
         AppConfirmationDialog(
@@ -321,15 +334,137 @@ fun CoursesScreen(
 
                             Spacer(modifier = Modifier.height(10.dp))
 
+                            val summary = courseFeeSummaries.find { it.courseName.trim().equals(course.name.trim(), ignoreCase = true) }
+                            val enrolledCount = summary?.studentCount ?: 0
+                            val isExpanded = expandedCourseId == course.id
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Fee & Enrollment Stats
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(NavyLight, RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                                    .background(NavyLight, RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Fee: Rs. ${String.format(Locale.US, "%,.0f", course.totalFee)}", color = SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                Text("Timing: ${course.classTiming}", color = TextSecondaryDark, fontSize = 11.sp)
+                                Column {
+                                    Text("Enrolled: $enrolledCount Students", color = GoldPrimary, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    Text("Course Fee: Rs. ${String.format(Locale.US, "%,.0f", course.totalFee)}", color = TextSecondaryDark, fontSize = 10.sp)
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    val paid = summary?.paidFee ?: 0.0
+                                    val bal = summary?.remainingFee ?: 0.0
+                                    Text("Paid: Rs. ${String.format(Locale.US, "%,.0f", paid)}", color = SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    Text("Balance: Rs. ${String.format(Locale.US, "%,.0f", bal)}", color = if (bal > 0) DangerRed else SuccessGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Action Row: View Students & Admit Student
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                TextButton(
+                                    onClick = {
+                                        expandedCourseId = if (isExpanded) null else course.id
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                        contentDescription = null,
+                                        tint = GoldPrimary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = if (isExpanded) "Hide Students" else "View Students ($enrolledCount)",
+                                        color = GoldPrimary,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                Button(
+                                    onClick = {
+                                        viewModel.setFilterCourse(course.name)
+                                        onNavigate(Screen.AddEditStudent.createRoute())
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = NavyDark),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.height(30.dp)
+                                ) {
+                                    Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(13.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Admit Student", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            // Expanded Student Records for this Course
+                            if (isExpanded) {
+                                Spacer(modifier = Modifier.height(6.dp))
+                                HorizontalDivider(color = NavyBorder.copy(alpha = 0.5f), thickness = 1.dp)
+                                Spacer(modifier = Modifier.height(6.dp))
+
+                                val studentsInCourse = summary?.students ?: emptyList()
+                                if (studentsInCourse.isEmpty()) {
+                                    Text(
+                                        text = "No students enrolled in ${course.name} yet.",
+                                        color = TextSecondaryDark,
+                                        fontSize = 11.sp,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth().padding(6.dp)
+                                    )
+                                } else {
+                                    Text(
+                                        text = "Students in ${course.name}:",
+                                        color = GoldPrimary,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    studentsInCourse.forEach { st ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .background(NavyDark, RoundedCornerShape(8.dp))
+                                                .clickable { onNavigate(Screen.StudentDetail.createRoute(st.id)) }
+                                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Text(st.name, color = TextPrimaryDark, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                Text("Roll: ${st.studentId} • Mob: ${st.studentMobile}", color = TextSecondaryDark, fontSize = 9.sp)
+                                            }
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Column(horizontalAlignment = Alignment.End) {
+                                                    Text("Paid: Rs. ${st.paidFee.toInt()}", color = SuccessGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                    Text(
+                                                        text = if (st.remainingFee <= 0) "Cleared" else "Bal: Rs. ${st.remainingFee.toInt()}",
+                                                        color = if (st.remainingFee > 0) DangerRed else SuccessGreen,
+                                                        fontSize = 10.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Button(
+                                                    onClick = { onNavigate(Screen.CollectFee.createRoute(st.id)) },
+                                                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen, contentColor = NavyDark),
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    modifier = Modifier.height(26.dp)
+                                                ) {
+                                                    Text("Fee", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(3.dp))
+                                    }
+                                }
                             }
                         }
                     }
