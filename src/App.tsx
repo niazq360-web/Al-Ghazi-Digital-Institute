@@ -13,10 +13,17 @@ import {
   Phone, 
   Laptop, 
   TrendingUp, 
+  TrendingDown,
   ShieldCheck, 
   ChevronRight,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Receipt,
+  PieChart,
+  Printer,
+  Calendar,
+  History,
+  FileText
 } from 'lucide-react';
 
 interface Course {
@@ -41,6 +48,39 @@ interface Student {
   admissionDate: string;
 }
 
+interface FeeReceipt {
+  receiptNo: string;
+  studentId: number;
+  studentName: string;
+  fatherName: string;
+  rollNo: string;
+  courseName: string;
+  totalFee: number;
+  previousPaid: number;
+  amountPaid: number;
+  newRemaining: number;
+  feeMonth: string;
+  isPreviousMonth: boolean;
+  paymentMethod: string;
+  paymentDate: string;
+}
+
+interface Expense {
+  id: number;
+  title: string;
+  category: string;
+  amount: number;
+  date: string;
+}
+
+const INITIAL_EXPENSES: Expense[] = [
+  { id: 1, title: 'Main Campus Building Rent', category: 'Rent', amount: 60000, date: '2026-10-01' },
+  { id: 2, title: 'Faculty & Instructor Salaries', category: 'Salaries', amount: 55000, date: '2026-10-01' },
+  { id: 3, title: 'Commercial Electricity & Generator Fuel', category: 'Utilities', amount: 20000, date: '2026-10-02' },
+  { id: 4, title: 'Meta & Google Admission Ads', category: 'Marketing', amount: 15000, date: '2026-10-03' },
+  { id: 5, title: 'Dedicated Fiber Internet & Software', category: 'Technology', amount: 10000, date: '2026-10-04' }
+];
+
 const INITIAL_COURSES: Course[] = [
   { id: 1, name: 'CIT', duration: '3 Months', totalFee: 15000, instructor: 'Sir Tariq Mehmood', category: 'Information Technology' },
   { id: 2, name: 'Trading', duration: '3 Months', totalFee: 25000, instructor: 'Sir Bilal Ahmed', category: 'Financial Markets' },
@@ -59,11 +99,12 @@ const INITIAL_STUDENTS: Student[] = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'fees' | 'courses' | 'apk'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'fees' | 'expenses' | 'courses' | 'apk'>('dashboard');
   const [selectedCourseFilter, setSelectedCourseFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [students, setStudents] = useState<Student[]>(INITIAL_STUDENTS);
   const [courses] = useState<Course[]>(INITIAL_COURSES);
+  const [expenses, setExpenses] = useState<Expense[]>(INITIAL_EXPENSES);
   const [collapsedCourses, setCollapsedCourses] = useState<{ [key: string]: boolean }>({});
   
   // New Admission Modal State
@@ -77,6 +118,15 @@ export default function App() {
   // Collect Fee Modal State
   const [selectedStudentForFee, setSelectedStudentForFee] = useState<Student | null>(null);
   const [feeAmountToPay, setFeeAmountToPay] = useState('');
+  const [selectedFeeMonth, setSelectedFeeMonth] = useState('October 2026');
+  const [paymentMethod, setPaymentMethod] = useState('Cash');
+  const [generatedReceipt, setGeneratedReceipt] = useState<FeeReceipt | null>(null);
+
+  // New Expense Modal State
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
+  const [newExpenseTitle, setNewExpenseTitle] = useState('');
+  const [newExpenseCategory, setNewExpenseCategory] = useState('Rent');
+  const [newExpenseAmount, setNewExpenseAmount] = useState('');
 
   // Toggle Collapse for a course in grouped view
   const toggleCourseCollapse = (courseName: string) => {
@@ -89,6 +139,12 @@ export default function App() {
   // Calculations
   const totalRevenue = useMemo(() => students.reduce((acc, s) => acc + s.paidFee, 0), [students]);
   const totalPending = useMemo(() => students.reduce((acc, s) => acc + s.remainingFee, 0), [students]);
+  const totalExpenses = useMemo(() => expenses.reduce((acc, e) => acc + e.amount, 0), [expenses]);
+  const netBalance = useMemo(() => totalRevenue - totalExpenses, [totalRevenue, totalExpenses]);
+  const recoveryRate = useMemo(() => {
+    const totalTarget = totalRevenue + totalPending;
+    return totalTarget > 0 ? (totalRevenue / totalTarget) * 100 : 0;
+  }, [totalRevenue, totalPending]);
 
   // Course summaries (CIT, Trading, etc. segregated)
   const courseSummaries = useMemo(() => {
@@ -171,10 +227,29 @@ export default function App() {
     const amount = parseFloat(feeAmountToPay) || 0;
     if (amount <= 0) return;
 
+    const isPrev = selectedFeeMonth !== 'October 2026';
+    const newPaid = selectedStudentForFee.paidFee + amount;
+    const newRemaining = Math.max(0, selectedStudentForFee.totalFee - newPaid);
+
+    const receipt: FeeReceipt = {
+      receiptNo: `REC-2026-${String(Math.floor(1000 + Math.random() * 9000))}`,
+      studentId: selectedStudentForFee.id,
+      studentName: selectedStudentForFee.name,
+      fatherName: selectedStudentForFee.fatherName,
+      rollNo: selectedStudentForFee.rollNo,
+      courseName: selectedStudentForFee.courseName,
+      totalFee: selectedStudentForFee.totalFee,
+      previousPaid: selectedStudentForFee.paidFee,
+      amountPaid: amount,
+      newRemaining: newRemaining,
+      feeMonth: selectedFeeMonth,
+      isPreviousMonth: isPrev,
+      paymentMethod: paymentMethod,
+      paymentDate: new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+    };
+
     setStudents(prev => prev.map(s => {
       if (s.id === selectedStudentForFee.id) {
-        const newPaid = s.paidFee + amount;
-        const newRemaining = Math.max(0, s.totalFee - newPaid);
         return {
           ...s,
           paidFee: newPaid,
@@ -186,6 +261,26 @@ export default function App() {
 
     setSelectedStudentForFee(null);
     setFeeAmountToPay('');
+    setGeneratedReceipt(receipt);
+  };
+
+  const handleAddExpense = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amountNum = parseFloat(newExpenseAmount) || 0;
+    if (!newExpenseTitle || amountNum <= 0) return;
+
+    const newExp: Expense = {
+      id: Date.now(),
+      title: newExpenseTitle,
+      category: newExpenseCategory,
+      amount: amountNum,
+      date: new Date().toISOString().split('T')[0]
+    };
+
+    setExpenses([newExp, ...expenses]);
+    setShowExpenseModal(false);
+    setNewExpenseTitle('');
+    setNewExpenseAmount('');
   };
 
   return (
@@ -202,18 +297,22 @@ export default function App() {
       }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '42px',
-              height: '42px',
-              borderRadius: '50%',
-              backgroundColor: 'rgba(212, 175, 55, 0.15)',
-              border: '2px solid #D4AF37',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <GraduationCap size={24} color="#D4AF37" />
-            </div>
+            <img 
+              src="/app-icon.png" 
+              alt="Al Ghazi Digital Institute Emblem" 
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                border: '2px solid #D4AF37',
+                objectFit: 'cover',
+                boxShadow: '0 0 10px rgba(212, 175, 55, 0.3)'
+              }}
+              onError={(e) => {
+                // fallback if image not loaded yet
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
             <div>
               <h1 style={{ fontSize: '18px', fontWeight: 800, color: '#D4AF37', letterSpacing: '0.5px' }}>
                 AL GHAZI DIGITAL INSTITUTE
@@ -229,7 +328,8 @@ export default function App() {
             {[
               { id: 'dashboard', label: 'Dashboard', icon: BookOpen },
               { id: 'students', label: 'Students Directory', icon: Users },
-              { id: 'fees', label: 'Fee Management', icon: DollarSign },
+              { id: 'fees', label: 'Fee Management & Receipts', icon: DollarSign },
+              { id: 'expenses', label: 'Expenses & Smart Charts', icon: TrendingDown },
               { id: 'courses', label: 'Courses', icon: Laptop },
               { id: 'apk', label: 'Download Android APK', icon: Download }
             ].map(tab => {
@@ -963,24 +1063,32 @@ export default function App() {
         {activeTab === 'apk' && (
           <div style={{ maxWidth: '720px', margin: '0 auto', textAlign: 'center', backgroundColor: '#1C2541', border: '1.5px solid #D4AF37', borderRadius: '16px', padding: '32px 20px' }}>
             <div style={{
-              width: '64px',
-              height: '64px',
+              width: '88px',
+              height: '88px',
               borderRadius: '50%',
               backgroundColor: 'rgba(212, 175, 55, 0.2)',
               border: '2px solid #D4AF37',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              margin: '0 auto 16px'
+              margin: '0 auto 16px',
+              overflow: 'hidden'
             }}>
-              <Download size={32} color="#D4AF37" />
+              <img 
+                src="/app-icon.png" 
+                alt="Al Ghazi Digital Institute Emblem" 
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
             </div>
 
             <h2 style={{ fontSize: '22px', fontWeight: 800, color: '#F8F9FA' }}>
               Download Al Ghazi Digital Institute APK
             </h2>
             <p style={{ color: '#94A3B8', fontSize: '13px', marginTop: '8px', maxWidth: '520px', margin: '8px auto 20px' }}>
-              Install the official Android application on your smartphone or tablet for offline attendance, thermal receipt printing, SMS dispatch, and biometric protection.
+              Install the official Android application with custom launcher icon, offline attendance, thermal receipt printing, SMS dispatch, and biometric protection.
             </p>
 
             <div style={{
@@ -1008,26 +1116,49 @@ export default function App() {
 
             <br />
 
-            <a
-              href="https://github.com/niazq360-web/Al-Ghazi-Digital-Institute/raw/main/APK_DOWNLOAD/app-debug.apk"
-              download="Al-Ghazi-Digital-Institute.apk"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                backgroundColor: '#10B981',
-                color: '#0B132B',
-                textDecoration: 'none',
-                padding: '12px 28px',
-                borderRadius: '10px',
-                fontSize: '15px',
-                fontWeight: 800,
-                boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)'
-              }}
-            >
-              <Download size={18} />
-              <span>Download Official APK (28.65 MB)</span>
-            </a>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+              <a
+                href="/app-debug.apk"
+                download="Al-Ghazi-Digital-Institute.apk"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: '#10B981',
+                  color: '#0B132B',
+                  textDecoration: 'none',
+                  padding: '12px 28px',
+                  borderRadius: '10px',
+                  fontSize: '15px',
+                  fontWeight: 800,
+                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.4)'
+                }}
+              >
+                <Download size={18} />
+                <span>Direct Download APK (28.65 MB)</span>
+              </a>
+
+              <a
+                href="https://github.com/niazq360-web/Al-Ghazi-Digital-Institute/raw/main/APK_DOWNLOAD/app-debug.apk"
+                download="Al-Ghazi-Digital-Institute.apk"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  backgroundColor: '#2D3A5D',
+                  color: '#F8F9FA',
+                  textDecoration: 'none',
+                  padding: '12px 20px',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  border: '1px solid #3A506B'
+                }}
+              >
+                <Download size={16} />
+                <span>GitHub Mirror</span>
+              </a>
+            </div>
 
             <div style={{ marginTop: '24px', fontSize: '11px', color: '#94A3B8' }}>
               <ShieldCheck size={14} color="#D4AF37" style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
@@ -1148,9 +1279,310 @@ export default function App() {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL: COLLECT FEE */}
+      {/* MODAL: COLLECT FEE WITH MONTH SELECTION */}
       {/* ========================================================= */}
       {selectedStudentForFee && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.75)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 100,
+          padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: '#1C2541',
+            border: '1.5px solid #10B981',
+            borderRadius: '16px',
+            padding: '24px',
+            maxWidth: '460px',
+            width: '100%',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#10B981', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Receipt size={20} />
+                <span>Fee Collection & Receipt (فیس وصولی)</span>
+              </h3>
+              <span style={{ fontSize: '11px', backgroundColor: '#0B132B', color: '#D4AF37', padding: '3px 8px', borderRadius: '4px', fontWeight: 700 }}>
+                {selectedStudentForFee.courseName}
+              </span>
+            </div>
+
+            <p style={{ fontSize: '12px', color: '#94A3B8', marginBottom: '16px', borderBottom: '1px solid #3A506B', pb: '8px' }}>
+              Student: <strong style={{ color: '#F8F9FA' }}>{selectedStudentForFee.name}</strong> ({selectedStudentForFee.rollNo})<br />
+              Total Course Fee: <strong>Rs. {selectedStudentForFee.totalFee.toLocaleString()}</strong> • 
+              Due Balance: <strong style={{ color: '#EF4444' }}>Rs. {selectedStudentForFee.remainingFee.toLocaleString()}</strong>
+            </p>
+
+            <form onSubmit={handlePayFee} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Fee Month Selection (Current vs Previous Months) */}
+              <div>
+                <label style={{ fontSize: '12px', color: '#D4AF37', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                  <Calendar size={14} />
+                  <span>Fee For Month / فیس برائے ماہ:</span>
+                </label>
+                
+                {/* Month Quick Chips */}
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                  {[
+                    { label: 'Current: Oct 2026', value: 'October 2026', isPrev: false },
+                    { label: 'Prev: Sep 2026 (پچھلا)', value: 'September 2026', isPrev: true },
+                    { label: 'Aug 2026', value: 'August 2026', isPrev: true },
+                    { label: 'Jul 2026', value: 'July 2026', isPrev: true }
+                  ].map(m => {
+                    const isSelected = selectedFeeMonth === m.value;
+                    return (
+                      <button
+                        type="button"
+                        key={m.value}
+                        onClick={() => setSelectedFeeMonth(m.value)}
+                        style={{
+                          padding: '5px 10px',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: isSelected ? 700 : 500,
+                          backgroundColor: isSelected ? (m.isPrev ? '#F59E0B' : '#10B981') : '#0B132B',
+                          color: isSelected ? '#0B132B' : '#F8F9FA',
+                          border: isSelected ? '1px solid #FFF' : '1px solid #3A506B',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {m.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Notice if Previous Month is Selected */}
+                {selectedFeeMonth !== 'October 2026' && (
+                  <div style={{
+                    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                    border: '1px solid #F59E0B',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    fontSize: '11px',
+                    color: '#FBBF24',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    <History size={15} />
+                    <span>Paying for <strong>{selectedFeeMonth} (پچھلا مہینہ)</strong>. رسيد پر پچھلا مہینہ واضح درج ہوگا۔</span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Amount to Pay (Rs.) *</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  max={selectedStudentForFee.remainingFee}
+                  value={feeAmountToPay}
+                  onChange={e => setFeeAmountToPay(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', backgroundColor: '#0B132B', border: '1px solid #3A506B', color: '#F8F9FA', fontSize: '15px', fontWeight: 700 }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Payment Method (طریقہ ادائیگی)</label>
+                <select
+                  value={paymentMethod}
+                  onChange={e => setPaymentMethod(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', backgroundColor: '#0B132B', border: '1px solid #3A506B', color: '#F8F9FA', fontSize: '13px' }}
+                >
+                  <option value="Cash">Cash (نقد)</option>
+                  <option value="EasyPaisa">EasyPaisa</option>
+                  <option value="JazzCash">JazzCash</option>
+                  <option value="Bank Transfer">Bank Transfer / Online</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStudentForFee(null)}
+                  style={{ padding: '8px 14px', borderRadius: '6px', backgroundColor: '#2D3A5D', border: 'none', color: '#F8F9FA', fontSize: '12px', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: '8px 20px', borderRadius: '6px', backgroundColor: '#10B981', border: 'none', color: '#0B132B', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}
+                >
+                  Confirm Payment & Generate Receipt →
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: OFFICIAL PRINTABLE RECEIPT */}
+      {/* ========================================================= */}
+      {generatedReceipt && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 110,
+          padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            color: '#0A192F',
+            borderRadius: '16px',
+            padding: '28px',
+            maxWidth: '480px',
+            width: '100%',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+            border: '2px solid #D4AF37',
+            fontFamily: 'system-ui, sans-serif'
+          }}>
+            {/* Header */}
+            <div style={{ textAlign: 'center', borderBottom: '2px dashed #D4AF37', paddingBottom: '16px', marginBottom: '16px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '48px', height: '48px', borderRadius: '50%', backgroundColor: '#0A192F', color: '#D4AF37', marginBottom: '8px' }}>
+                <GraduationCap size={28} />
+              </div>
+              <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#0A192F', letterSpacing: '0.5px', margin: 0 }}>
+                AL GHAZI DIGITAL INSTITUTE
+              </h2>
+              <p style={{ fontSize: '11px', color: '#475569', fontWeight: 600, margin: '2px 0 0 0' }}>
+                Official Fee Payment Voucher • رسید برائے فیس
+              </p>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', fontSize: '11px', color: '#64748B' }}>
+                <span><strong>Receipt No:</strong> {generatedReceipt.receiptNo}</span>
+                <span><strong>Date:</strong> {generatedReceipt.paymentDate}</span>
+              </div>
+            </div>
+
+            {/* Fee Month Highlight Badge */}
+            <div style={{
+              backgroundColor: generatedReceipt.isPreviousMonth ? '#FEF3C7' : '#ECFDF5',
+              border: `1.5px solid ${generatedReceipt.isPreviousMonth ? '#F59E0B' : '#10B981'}`,
+              borderRadius: '8px',
+              padding: '10px',
+              textAlign: 'center',
+              marginBottom: '16px'
+            }}>
+              <span style={{ fontSize: '11px', color: '#475569', display: 'block', fontWeight: 600 }}>FEE PAID FOR MONTH (فیس برائے ماہ)</span>
+              <strong style={{ fontSize: '15px', color: generatedReceipt.isPreviousMonth ? '#B45309' : '#047857' }}>
+                {generatedReceipt.feeMonth} {generatedReceipt.isPreviousMonth ? '(پچھلا مہینہ / Previous Month)' : ''}
+              </strong>
+            </div>
+
+            {/* Student Details Table */}
+            <div style={{ fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '8px', borderBottom: '1px solid #E2E8F0', paddingBottom: '12px', marginBottom: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#64748B' }}>Student Name:</span>
+                <strong style={{ color: '#0F172A' }}>{generatedReceipt.studentName}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#64748B' }}>Father's Name:</span>
+                <span style={{ color: '#0F172A' }}>{generatedReceipt.fatherName}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#64748B' }}>Roll No / ID:</span>
+                <span style={{ color: '#0F172A', fontWeight: 700 }}>{generatedReceipt.rollNo}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#64748B' }}>Enrolled Course:</span>
+                <strong style={{ color: '#0F172A' }}>{generatedReceipt.courseName}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#64748B' }}>Payment Method:</span>
+                <span style={{ color: '#0F172A' }}>{generatedReceipt.paymentMethod}</span>
+              </div>
+            </div>
+
+            {/* Financial Numbers */}
+            <div style={{ fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B' }}>
+                <span>Total Course Fee:</span>
+                <span>Rs. {generatedReceipt.totalFee.toLocaleString()}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748B' }}>
+                <span>Previous Paid:</span>
+                <span>Rs. {generatedReceipt.previousPaid.toLocaleString()}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: '#F1F5F9', padding: '8px', borderRadius: '6px', fontSize: '15px' }}>
+                <strong style={{ color: '#047857' }}>Amount Paid Now:</strong>
+                <strong style={{ color: '#047857' }}>Rs. {generatedReceipt.amountPaid.toLocaleString()}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: generatedReceipt.newRemaining > 0 ? '#DC2626' : '#047857', fontWeight: 700 }}>
+                <span>Remaining Balance Due:</span>
+                <span>Rs. {generatedReceipt.newRemaining.toLocaleString()}</span>
+              </div>
+            </div>
+
+            <p style={{ textAlign: 'center', fontSize: '10px', color: '#94A3B8', margin: '0 0 16px 0' }}>
+              Computer generated official receipt. Thank you for choosing Al Ghazi Digital Institute.
+            </p>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  borderRadius: '8px',
+                  backgroundColor: '#0A192F',
+                  color: '#D4AF37',
+                  border: 'none',
+                  fontWeight: 700,
+                  fontSize: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  cursor: 'pointer'
+                }}
+              >
+                <Printer size={16} />
+                <span>Print Receipt (پرنٹ)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setGeneratedReceipt(null)}
+                style={{
+                  padding: '10px 18px',
+                  borderRadius: '8px',
+                  backgroundColor: '#E2E8F0',
+                  color: '#0F172A',
+                  border: 'none',
+                  fontWeight: 600,
+                  fontSize: '12px',
+                  cursor: 'pointer'
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL: ADD EXPENSE */}
+      {/* ========================================================= */}
+      {showExpenseModal && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -1166,28 +1598,54 @@ export default function App() {
         }}>
           <div style={{
             backgroundColor: '#1C2541',
-            border: '1px solid #10B981',
+            border: '1px solid #EF4444',
             borderRadius: '16px',
             padding: '24px',
             maxWidth: '400px',
             width: '100%'
           }}>
-            <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#10B981', marginBottom: '8px' }}>
-              Fee Collection (فیس وصولی)
+            <h3 style={{ fontSize: '17px', fontWeight: 800, color: '#EF4444', marginBottom: '14px' }}>
+              Record Operating Expense (نیا خرچہ)
             </h3>
-            <p style={{ fontSize: '12px', color: '#94A3B8', marginBottom: '14px' }}>
-              Student: <strong>{selectedStudentForFee.name}</strong> ({selectedStudentForFee.courseName})<br />
-              Current Outstanding Balance: <strong style={{ color: '#EF4444' }}>Rs. {selectedStudentForFee.remainingFee.toLocaleString()}</strong>
-            </p>
 
-            <form onSubmit={handlePayFee} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form onSubmit={handleAddExpense} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
-                <label style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Amount to Pay (Rs.) *</label>
+                <label style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Expense Title / Description *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Campus Generator Fuel"
+                  value={newExpenseTitle}
+                  onChange={e => setNewExpenseTitle(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', backgroundColor: '#0B132B', border: '1px solid #3A506B', color: '#F8F9FA', fontSize: '13px' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Category</label>
+                <select
+                  value={newExpenseCategory}
+                  onChange={e => setNewExpenseCategory(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', backgroundColor: '#0B132B', border: '1px solid #3A506B', color: '#F8F9FA', fontSize: '13px' }}
+                >
+                  <option value="Rent">Campus Rent (کرایہ)</option>
+                  <option value="Salaries">Instructor & Staff Salaries (تنخواہیں)</option>
+                  <option value="Utilities">Electricity & Generator (بل و بجلی)</option>
+                  <option value="Marketing">Marketing & Admission Ads (اشتہارات)</option>
+                  <option value="Technology">Internet & Tech Equipment</option>
+                  <option value="Miscellaneous">Miscellaneous (متفرق)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', color: '#94A3B8', display: 'block', marginBottom: '4px' }}>Amount (Rs.) *</label>
                 <input
                   type="number"
                   required
-                  value={feeAmountToPay}
-                  onChange={e => setFeeAmountToPay(e.target.value)}
+                  min="1"
+                  placeholder="e.g. 5000"
+                  value={newExpenseAmount}
+                  onChange={e => setNewExpenseAmount(e.target.value)}
                   style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', backgroundColor: '#0B132B', border: '1px solid #3A506B', color: '#F8F9FA', fontSize: '13px' }}
                 />
               </div>
@@ -1195,16 +1653,16 @@ export default function App() {
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
                 <button
                   type="button"
-                  onClick={() => setSelectedStudentForFee(null)}
+                  onClick={() => setShowExpenseModal(false)}
                   style={{ padding: '8px 14px', borderRadius: '6px', backgroundColor: '#2D3A5D', border: 'none', color: '#F8F9FA', fontSize: '12px' }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  style={{ padding: '8px 16px', borderRadius: '6px', backgroundColor: '#10B981', border: 'none', color: '#0B132B', fontWeight: 700, fontSize: '12px' }}
+                  style={{ padding: '8px 16px', borderRadius: '6px', backgroundColor: '#EF4444', border: 'none', color: '#FFFFFF', fontWeight: 700, fontSize: '12px' }}
                 >
-                  Confirm Payment
+                  Save Expense
                 </button>
               </div>
             </form>
