@@ -152,27 +152,8 @@ fun MainAppContent() {
     val scope = rememberCoroutineScope()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
-    // Permissions launcher for SMS and Bluetooth
-    val permissionsLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        viewModel.loadHardwareInfo()
-    }
-
     LaunchedEffect(Unit) {
-        val permissionsToRequest = mutableListOf<String>()
-        permissionsToRequest.add(Manifest.permission.SEND_SMS)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP_MR1) {
-            permissionsToRequest.add(Manifest.permission.READ_PHONE_STATE)
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            permissionsToRequest.add(Manifest.permission.BLUETOOTH_CONNECT)
-            permissionsToRequest.add(Manifest.permission.BLUETOOTH_SCAN)
-        } else {
-            permissionsToRequest.add(Manifest.permission.BLUETOOTH)
-            permissionsToRequest.add(Manifest.permission.BLUETOOTH_ADMIN)
-        }
-        permissionsLauncher.launch(permissionsToRequest.toTypedArray())
+        viewModel.loadHardwareInfo()
     }
 
     // Toast/Snackbar notifications
