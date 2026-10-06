@@ -196,6 +196,7 @@ class ThermalPrinterService(private val context: Context) {
                 write("${twoCols("Receipt No:", payment.receiptNo)}\n".toByteArray(Charsets.UTF_8))
                 val dateStr = SimpleDateFormat("dd-MMM-yyyy hh:mm a", Locale.US).format(Date(payment.paymentDate))
                 write("${twoCols("Date/Time:", dateStr)}\n".toByteArray(Charsets.UTF_8))
+                write("${twoCols("Fee Month:", payment.feeMonth.ifBlank { "Current Month" })}\n".toByteArray(Charsets.UTF_8))
                 write("$hr\n".toByteArray(Charsets.UTF_8))
                 write("Student: ${payment.studentName}\n".toByteArray(Charsets.UTF_8))
                 write("Father : ${payment.fatherName}\n".toByteArray(Charsets.UTF_8))

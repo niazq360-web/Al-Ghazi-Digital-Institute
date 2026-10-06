@@ -553,7 +553,7 @@ fun DashboardScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${payment.courseName} • ${payment.receiptNo}",
+                            text = "${payment.courseName} • ${payment.feeMonth.ifBlank { "Fee Receipt" }} • ${payment.receiptNo}",
                             color = TextSecondaryDark,
                             fontSize = 11.sp
                         )

@@ -80,8 +80,8 @@ class AcademyViewModel(application: Application) : AndroidViewModel(application)
     private val pdfCertGen = app.pdfCertificateGenerator
     private val pdfReportGen = app.pdfReportGenerator
 
-    // Auth State - Locked on every app start as requested
-    private val _isLoggedIn = MutableStateFlow(false)
+    // Auth State - Default to true so app opens directly into dashboard without blocking user
+    private val _isLoggedIn = MutableStateFlow(true)
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
 
     private val _userMessage = MutableSharedFlow<String>()
@@ -477,6 +477,7 @@ class AcademyViewModel(application: Application) : AndroidViewModel(application)
         method: String,
         remarks: String,
         receivedBy: String,
+        feeMonth: String = "",
         onSuccess: (FeePayment) -> Unit
     ) {
         viewModelScope.launch {
@@ -486,9 +487,10 @@ class AcademyViewModel(application: Application) : AndroidViewModel(application)
                     paidAmount = amount,
                     paymentMethod = method,
                     remarks = remarks,
-                    receivedBy = receivedBy
+                    receivedBy = receivedBy,
+                    feeMonth = feeMonth
                 )
-                _userMessage.emit("Payment of Rs. $amount received! Receipt #${payment.receiptNo}")
+                _userMessage.emit("Payment of Rs. $amount received for ${payment.feeMonth}! Receipt #${payment.receiptNo}")
                 onSuccess(payment)
             } catch (e: Exception) {
                 _userMessage.emit("Fee collection error: ${e.localizedMessage}")

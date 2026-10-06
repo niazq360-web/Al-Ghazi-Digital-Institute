@@ -261,6 +261,22 @@ fun ReceiptActionScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("PAYMENT SUCCESSFUL", color = SuccessGreen, fontWeight = FontWeight.Bold, fontSize = 16.sp, letterSpacing = 1.sp)
                         Text(payment.receiptNo, color = GoldBright, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        if (payment.feeMonth.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(GoldPrimary.copy(alpha = 0.2f))
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "فیس برائے ماہ: ${payment.feeMonth}",
+                                    color = GoldBright,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -288,6 +304,7 @@ fun ReceiptActionScreen(
                         ReceiptRow(label = "Receipt No:", value = payment.receiptNo, isBold = true)
                         val dateStr = SimpleDateFormat("dd-MMM-yyyy hh:mm a", Locale.US).format(Date(payment.paymentDate))
                         ReceiptRow(label = "Date & Time:", value = dateStr)
+                        ReceiptRow(label = "Fee For Month (ماہ):", value = payment.feeMonth.ifBlank { "Current Month" }, isBold = true, isGreen = true)
                         ReceiptRow(label = "Student Name:", value = payment.studentName, isBold = true)
                         ReceiptRow(label = "Father Name:", value = payment.fatherName)
                         ReceiptRow(label = "Roll No / ID:", value = payment.studentRollNo)
@@ -315,6 +332,9 @@ fun ReceiptActionScreen(
                         )
 
                         ReceiptRow(label = "Payment Method:", value = payment.paymentMethod)
+                        if (payment.remarks.isNotBlank()) {
+                            ReceiptRow(label = "Remarks / Month:", value = payment.remarks)
+                        }
                         ReceiptRow(label = "Received By:", value = payment.receivedBy)
 
                         Spacer(modifier = Modifier.height(12.dp))

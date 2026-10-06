@@ -21,12 +21,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -35,6 +39,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -73,8 +79,10 @@ import com.example.ui.theme.NavyLight
 import com.example.ui.theme.SuccessGreen
 import com.example.ui.theme.TextPrimaryDark
 import com.example.ui.theme.TextSecondaryDark
+import com.example.ui.theme.WarningAmber
 import com.example.ui.viewmodel.AcademyViewModel
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -96,12 +104,52 @@ fun CollectFeeScreen(
         )
     }
 
+    androidx.compose.runtime.LaunchedEffect(allStudents) {
+        if (selectedStudent == null && allStudents.isNotEmpty()) {
+            selectedStudent = if (preselectedStudentId != null) {
+                allStudents.find { it.id == preselectedStudentId } ?: allStudents.firstOrNull()
+            } else {
+                allStudents.firstOrNull()
+            }
+        }
+    }
+
     var studentDropdownExpanded by remember { mutableStateOf(false) }
     var methodDropdownExpanded by remember { mutableStateOf(false) }
 
+    val monthFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.US) }
+    val currentMonthName = remember { monthFormat.format(Date()) }
+    val prevMonthName = remember {
+        val cal = Calendar.getInstance()
+        cal.add(Calendar.MONTH, -1)
+        monthFormat.format(cal.time)
+    }
+    val twoMonthsAgoName = remember {
+        val cal = Calendar.getInstance()
+        cal.add(Calendar.MONTH, -2)
+        monthFormat.format(cal.time)
+    }
+    val threeMonthsAgoName = remember {
+        val cal = Calendar.getInstance()
+        cal.add(Calendar.MONTH, -3)
+        monthFormat.format(cal.time)
+    }
+    val pastMonthsList = remember {
+        val list = mutableListOf<String>()
+        val cal = Calendar.getInstance()
+        for (i in 0 until 12) {
+            list.add(monthFormat.format(cal.time))
+            cal.add(Calendar.MONTH, -1)
+        }
+        list
+    }
+
+    var selectedFeeMonth by remember { mutableStateOf(currentMonthName) }
+    var monthDropdownExpanded by remember { mutableStateOf(false) }
+
     var paidAmountText by remember { mutableStateOf("") }
     var paymentMethod by remember { mutableStateOf("Cash") }
-    var remarks by remember { mutableStateOf("Monthly installment fee") }
+    var remarks by remember { mutableStateOf("Fee for $currentMonthName") }
     var receivedBy by remember { mutableStateOf(settings.ownerName) }
     var allowAdvance by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -275,6 +323,228 @@ fun CollectFeeScreen(
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text("Payment Information", color = GoldPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
 
+                        // ----------------------------------------
+                        // Fee Month Selection & Previous Month Indicator
+                        // ----------------------------------------
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "Fee For Month (فیس برائے ماہ)",
+                                    color = GoldPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
+                                if (selectedFeeMonth != currentMonthName) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(WarningAmber.copy(alpha = 0.2f))
+                                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            "پچھلا مہینہ (Previous Month)",
+                                            color = WarningAmber,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 10.sp
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Quick Selection Chips for Easy 1-Tap Choice
+                            LazyRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                item {
+                                    val isCur = selectedFeeMonth == currentMonthName
+                                    FilterChip(
+                                        selected = isCur,
+                                        onClick = {
+                                            selectedFeeMonth = currentMonthName
+                                            remarks = "Fee for $currentMonthName"
+                                        },
+                                        label = { Text("Current: $currentMonthName", fontSize = 11.sp) },
+                                        leadingIcon = if (isCur) {
+                                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                                        } else null,
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = GoldPrimary,
+                                            selectedLabelColor = NavyDark,
+                                            containerColor = NavyLight,
+                                            labelColor = TextPrimaryDark
+                                        )
+                                    )
+                                }
+
+                                item {
+                                    val isPrev = selectedFeeMonth == prevMonthName
+                                    FilterChip(
+                                        selected = isPrev,
+                                        onClick = {
+                                            selectedFeeMonth = prevMonthName
+                                            remarks = "Previous Month Fee for $prevMonthName"
+                                        },
+                                        label = { Text("Prev: $prevMonthName", fontSize = 11.sp) },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = if (isPrev) Icons.Default.Check else Icons.Default.History,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        },
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = WarningAmber,
+                                            selectedLabelColor = NavyDark,
+                                            containerColor = NavyLight,
+                                            labelColor = WarningAmber
+                                        )
+                                    )
+                                }
+
+                                item {
+                                    val isTwoAgo = selectedFeeMonth == twoMonthsAgoName
+                                    FilterChip(
+                                        selected = isTwoAgo,
+                                        onClick = {
+                                            selectedFeeMonth = twoMonthsAgoName
+                                            remarks = "Fee for $twoMonthsAgoName"
+                                        },
+                                        label = { Text(twoMonthsAgoName, fontSize = 11.sp) },
+                                        leadingIcon = if (isTwoAgo) {
+                                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                                        } else null,
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = GoldPrimary,
+                                            selectedLabelColor = NavyDark,
+                                            containerColor = NavyLight,
+                                            labelColor = TextPrimaryDark
+                                        )
+                                    )
+                                }
+
+                                item {
+                                    val isThreeAgo = selectedFeeMonth == threeMonthsAgoName
+                                    FilterChip(
+                                        selected = isThreeAgo,
+                                        onClick = {
+                                            selectedFeeMonth = threeMonthsAgoName
+                                            remarks = "Fee for $threeMonthsAgoName"
+                                        },
+                                        label = { Text(threeMonthsAgoName, fontSize = 11.sp) },
+                                        leadingIcon = if (isThreeAgo) {
+                                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp)) }
+                                        } else null,
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = GoldPrimary,
+                                            selectedLabelColor = NavyDark,
+                                            containerColor = NavyLight,
+                                            labelColor = TextPrimaryDark
+                                        )
+                                    )
+                                }
+                            }
+
+                            // Month Dropdown / Selection Field
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                OutlinedTextField(
+                                    value = selectedFeeMonth,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Selected Fee Month (ماہانہ فیس برائے)") },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.CalendarMonth,
+                                            contentDescription = null,
+                                            tint = if (selectedFeeMonth != currentMonthName) WarningAmber else GoldPrimary
+                                        )
+                                    },
+                                    trailingIcon = {
+                                        IconButton(onClick = { monthDropdownExpanded = true }) {
+                                            Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = GoldPrimary)
+                                        }
+                                    },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = if (selectedFeeMonth != currentMonthName) WarningAmber else GoldPrimary,
+                                        unfocusedBorderColor = if (selectedFeeMonth != currentMonthName) WarningAmber.copy(alpha = 0.8f) else NavyBorder,
+                                        focusedTextColor = TextPrimaryDark,
+                                        unfocusedTextColor = TextPrimaryDark,
+                                        focusedContainerColor = NavyLight,
+                                        unfocusedContainerColor = NavyLight
+                                    ),
+                                    modifier = Modifier.fillMaxWidth().testTag("select_fee_month_field")
+                                )
+
+                                DropdownMenu(
+                                    expanded = monthDropdownExpanded,
+                                    onDismissRequest = { monthDropdownExpanded = false },
+                                    modifier = Modifier.background(NavyCard)
+                                ) {
+                                    pastMonthsList.forEachIndexed { index, m ->
+                                        val isCurrent = index == 0
+                                        val isPrevious = index == 1
+                                        DropdownMenuItem(
+                                            text = {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = m,
+                                                        color = if (m == selectedFeeMonth) GoldBright else TextPrimaryDark,
+                                                        fontWeight = if (m == selectedFeeMonth || isCurrent) FontWeight.Bold else FontWeight.Normal
+                                                    )
+                                                    if (isCurrent) {
+                                                        Text(" (Current)", color = SuccessGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                    } else if (isPrevious) {
+                                                        Text(" (Previous / پچھلا)", color = WarningAmber, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                    }
+                                                }
+                                            },
+                                            onClick = {
+                                                selectedFeeMonth = m
+                                                remarks = if (isPrevious) "Previous Month Fee for $m" else "Fee for $m"
+                                                monthDropdownExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Notice Banner if paying for a Previous Month
+                            if (selectedFeeMonth != currentMonthName) {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth().border(1.dp, WarningAmber.copy(alpha = 0.5f), RoundedCornerShape(10.dp)),
+                                    colors = CardDefaults.cardColors(containerColor = WarningAmber.copy(alpha = 0.12f)),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.History, contentDescription = null, tint = WarningAmber, modifier = Modifier.size(20.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Column {
+                                            Text(
+                                                text = "Paying for Previous Month: $selectedFeeMonth",
+                                                color = WarningAmber,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp
+                                            )
+                                            Text(
+                                                text = "Receipt will explicitly show that fee is paid for $selectedFeeMonth (پچھلے مہینے کی فیس)",
+                                                color = TextPrimaryDark,
+                                                fontSize = 11.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         OutlinedTextField(
                             value = paidAmountText,
                             onValueChange = {
@@ -439,6 +709,7 @@ fun CollectFeeScreen(
                             method = paymentMethod,
                             remarks = remarks,
                             receivedBy = receivedBy,
+                            feeMonth = selectedFeeMonth,
                             onSuccess = { payment ->
                                 onNavigate(Screen.ReceiptAction.createRoute(payment.id))
                             }

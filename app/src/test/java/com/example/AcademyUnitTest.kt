@@ -48,9 +48,29 @@ class AcademyUnitTest {
             previousPaid = 0.0,
             paidAmount = 20000.0,
             newTotalPaid = 20000.0,
-            remainingFee = 12000.0
+            remainingFee = 12000.0,
+            feeMonth = "September 2026"
         )
         assertEquals("REC-2026-00001", payment.receiptNo)
         assertEquals(12000.0, payment.remainingFee, 0.001)
+        assertEquals("September 2026", payment.feeMonth)
+    }
+
+    @Test
+    fun testPercentageCalculations() {
+        val totalRevenue = 100000.0
+        val collectedFee = 75000.0
+        val pendingFee = 25000.0
+
+        val collectionPct = (collectedFee / totalRevenue) * 100
+        val pendingPct = (pendingFee / totalRevenue) * 100
+
+        assertEquals(75.0, collectionPct, 0.001)
+        assertEquals(25.0, pendingPct, 0.001)
+
+        val totalExpenses = 50000.0
+        val rentExpense = 20000.0
+        val rentPct = (rentExpense / totalExpenses) * 100
+        assertEquals(40.0, rentPct, 0.001)
     }
 }

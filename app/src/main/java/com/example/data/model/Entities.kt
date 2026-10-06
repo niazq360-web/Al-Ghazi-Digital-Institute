@@ -102,6 +102,7 @@ data class FeePayment(
     val paymentDate: Long = System.currentTimeMillis(),
     val paymentMethod: String = "Cash", // Cash, EasyPaisa, JazzCash, Bank Transfer, Online
     val remarks: String = "Monthly installment",
+    val feeMonth: String = "", // e.g. "October 2026", "September 2026 (Previous Month)"
     val receivedBy: String = "Admin",
     val simUsed: String = "Default SIM",
     val smsStatus: String = "Pending" // "Sent", "Failed", "Pending", "Fallback SMS App", "Skipped"

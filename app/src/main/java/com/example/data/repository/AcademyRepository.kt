@@ -134,6 +134,7 @@ class AcademyRepository(private val context: Context) {
         paymentMethod: String,
         remarks: String,
         receivedBy: String,
+        feeMonth: String = "",
         isAdvanceAllowed: Boolean = false
     ): FeePayment = withContext(Dispatchers.IO) {
         val student = studentDao.getStudentById(studentId)
@@ -146,6 +147,8 @@ class AcademyRepository(private val context: Context) {
         val previousPaid = student.paidFee
         val newTotalPaid = previousPaid + paidAmount
         val newRemaining = (student.finalFee - newTotalPaid).coerceAtLeast(0.0)
+
+        val resolvedMonth = if (feeMonth.isNotBlank()) feeMonth else SimpleDateFormat("MMMM yyyy", Locale.US).format(Date())
 
         val payment = FeePayment(
             receiptNo = receiptNumber,
@@ -163,6 +166,7 @@ class AcademyRepository(private val context: Context) {
             paymentDate = System.currentTimeMillis(),
             paymentMethod = paymentMethod,
             remarks = remarks,
+            feeMonth = resolvedMonth,
             receivedBy = receivedBy,
             smsStatus = "Pending"
         )

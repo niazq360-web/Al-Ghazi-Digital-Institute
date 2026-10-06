@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,7 +24,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.TrendingDown
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -35,6 +40,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
@@ -51,6 +57,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -64,10 +73,13 @@ import com.example.ui.components.StatsCard
 import com.example.ui.theme.DangerRed
 import com.example.ui.theme.GoldBright
 import com.example.ui.theme.GoldPrimary
+import com.example.ui.theme.InfoBlue
 import com.example.ui.theme.NavyBorder
 import com.example.ui.theme.NavyCard
 import com.example.ui.theme.NavyDark
 import com.example.ui.theme.NavyLight
+import com.example.ui.theme.PurpleAccent
+import com.example.ui.theme.SuccessGreen
 import com.example.ui.theme.TextPrimaryDark
 import com.example.ui.theme.TextSecondaryDark
 import com.example.ui.theme.WarningAmber
@@ -75,6 +87,14 @@ import com.example.ui.viewmodel.AcademyViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+private data class CategoryStat(
+    val name: String,
+    val amount: Double,
+    val count: Int,
+    val percent: Double,
+    val color: Color
+)
 
 @Composable
 fun ExpensesScreen(
@@ -86,6 +106,7 @@ fun ExpensesScreen(
     val settings by viewModel.settings.collectAsState()
 
     var showAddDialog by remember { mutableStateOf(false) }
+    var showAnalyticsChart by remember { mutableStateOf(true) }
     var selectedCategoryFilter by remember { mutableStateOf<String?>(null) }
     var expenseToDelete by remember { mutableStateOf<Expense?>(null) }
 
@@ -278,6 +299,154 @@ fun ExpensesScreen(
                     .padding(vertical = 8.dp),
                 testTag = "stats_total_expenses"
             )
+
+            // Smart Expense Analytics & Percentage Graph Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp)
+                    .border(1.dp, NavyBorder, RoundedCornerShape(16.dp)),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = NavyCard)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Assessment, contentDescription = null, tint = DangerRed, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = "Smart Expense Graph & % Breakdown",
+                                    color = GoldPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
+                                Text(
+                                    text = "اخراجات کا فیصد تناسب اور اسمارٹ گراف",
+                                    color = TextSecondaryDark,
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+
+                        IconButton(onClick = { showAnalyticsChart = !showAnalyticsChart }, modifier = Modifier.size(28.dp)) {
+                            Icon(
+                                imageVector = if (showAnalyticsChart) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = null,
+                                tint = GoldPrimary
+                            )
+                        }
+                    }
+
+                    if (showAnalyticsChart) {
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        val categoryBreakdown = remember(expenses, totalExpenses) {
+                            categories.map { cat ->
+                                val sum = expenses.filter { it.category == cat }.sumOf { it.amount }
+                                val count = expenses.count { it.category == cat }
+                                val pct = if (totalExpenses > 0) (sum / totalExpenses) * 100 else 0.0
+                                val color = when (cat) {
+                                    "Rent" -> DangerRed
+                                    "Electricity / Utilities" -> WarningAmber
+                                    "Staff Salary" -> InfoBlue
+                                    "Marketing / Ads" -> PurpleAccent
+                                    "Equipment & Maintenance" -> GoldBright
+                                    "Internet & Tech" -> SuccessGreen
+                                    "Refreshments / Tea" -> GoldPrimary
+                                    else -> TextSecondaryDark
+                                }
+                                CategoryStat(cat, sum, count, pct, color)
+                            }.filter { it.amount > 0 || totalExpenses == 0.0 }
+                        }
+
+                        if (expenses.isEmpty()) {
+                            Text("No expenses recorded yet to chart.", color = TextSecondaryDark, fontSize = 11.sp)
+                        } else {
+                            // Multi-segment Proportional Visual Bar (Canvas)
+                            Canvas(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(18.dp)
+                                    .clip(RoundedCornerShape(9.dp))
+                            ) {
+                                val barWidth = size.width
+                                val barHeight = size.height
+
+                                drawRoundRect(
+                                    color = NavyLight,
+                                    size = size,
+                                    cornerRadius = CornerRadius(9f, 9f)
+                                )
+
+                                var currentX = 0f
+                                categoryBreakdown.forEach { item ->
+                                    val itemWidth = (barWidth * (item.percent / 100f).toFloat()).coerceAtLeast(0f)
+                                    if (itemWidth > 0f) {
+                                        drawRect(
+                                            color = item.color,
+                                            topLeft = Offset(currentX, 0f),
+                                            size = Size(itemWidth, barHeight)
+                                        )
+                                        currentX += itemWidth
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // List of Categories with Percentages
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                categoryBreakdown.forEach { catStat ->
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(catStat.color))
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = catStat.name,
+                                                    color = TextPrimaryDark,
+                                                    fontWeight = FontWeight.Medium,
+                                                    fontSize = 12.sp
+                                                )
+                                                if (catStat.count > 0) {
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text("(${catStat.count})", color = TextSecondaryDark, fontSize = 10.sp)
+                                                }
+                                            }
+
+                                            Text(
+                                                text = "Rs. ${String.format(Locale.US, "%,.0f", catStat.amount)} (${String.format(Locale.US, "%.1f", catStat.percent)}%)",
+                                                color = catStat.color,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 12.sp
+                                            )
+                                        }
+
+                                        LinearProgressIndicator(
+                                            progress = { (catStat.percent / 100f).toFloat().coerceIn(0f, 1f) },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(5.dp)
+                                                .clip(RoundedCornerShape(3.dp)),
+                                            color = catStat.color,
+                                            trackColor = NavyLight
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             // Category Filter Chips
             LazyRow(

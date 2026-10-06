@@ -93,6 +93,7 @@ class PdfReceiptGenerator(private val context: Context) {
         drawRow("Receipt No:", payment.receiptNo, isBold = true)
         val dateStr = SimpleDateFormat("dd-MMM-yyyy hh:mm a", Locale.US).format(Date(payment.paymentDate))
         drawRow("Payment Date:", dateStr)
+        drawRow("Fee For Month (ماہ):", payment.feeMonth.ifBlank { "Current Month" }, isBold = true, isHighlight = true)
         drawRow("Student Name:", payment.studentName, isBold = true)
         drawRow("Father Name:", payment.fatherName)
         drawRow("Roll No / ID:", payment.studentRollNo)

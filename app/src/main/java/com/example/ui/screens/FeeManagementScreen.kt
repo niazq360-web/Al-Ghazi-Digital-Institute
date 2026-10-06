@@ -71,6 +71,18 @@ import com.example.ui.theme.GoldBright
 import com.example.ui.theme.GoldPrimary
 import com.example.ui.theme.GoldSecondary
 import com.example.ui.theme.InfoBlue
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material3.LinearProgressIndicator
+import com.example.ui.theme.InfoBlue
+import com.example.ui.theme.WarningAmber
 import com.example.ui.theme.NavyBorder
 import com.example.ui.theme.NavyCard
 import com.example.ui.theme.NavyDark
@@ -86,6 +98,7 @@ import java.util.Locale
 
 enum class FeeScreenTab {
     COURSE_BREAKDOWN,
+    ANALYTICS_GRAPHS,
     RECEIPTS_HISTORY,
     BALANCE_DUES
 }
@@ -178,7 +191,7 @@ fun FeeManagementScreen(
                 )
             }
 
-            // 3 Mode Switcher Tabs
+            // 4 Mode Switcher Tabs
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -187,7 +200,7 @@ fun FeeManagementScreen(
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 FeeTabButton(
-                    title = "Course Breakdown\nکورس فیس و بقایا",
+                    title = "Courses\nکورس فیس",
                     icon = Icons.Default.School,
                     isSelected = activeTab == FeeScreenTab.COURSE_BREAKDOWN,
                     modifier = Modifier.weight(1f)
@@ -195,7 +208,15 @@ fun FeeManagementScreen(
                     activeTab = FeeScreenTab.COURSE_BREAKDOWN
                 }
                 FeeTabButton(
-                    title = "Receipts\nتمام رسیدیں",
+                    title = "Smart Charts\nاسمارٹ گراف %",
+                    icon = Icons.Default.Assessment,
+                    isSelected = activeTab == FeeScreenTab.ANALYTICS_GRAPHS,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    activeTab = FeeScreenTab.ANALYTICS_GRAPHS
+                }
+                FeeTabButton(
+                    title = "Receipts\nرسیدیں",
                     icon = Icons.Default.Receipt,
                     isSelected = activeTab == FeeScreenTab.RECEIPTS_HISTORY,
                     modifier = Modifier.weight(1f)
@@ -203,7 +224,7 @@ fun FeeManagementScreen(
                     activeTab = FeeScreenTab.RECEIPTS_HISTORY
                 }
                 FeeTabButton(
-                    title = "Balance Dues\nبقایا والے طلباء",
+                    title = "Defaulters\nبقایا جات",
                     icon = Icons.Default.Warning,
                     isSelected = activeTab == FeeScreenTab.BALANCE_DUES,
                     modifier = Modifier.weight(1f)
@@ -508,7 +529,320 @@ fun FeeManagementScreen(
             }
 
             // ==========================================
-            // TAB 2: RECEIPTS & HISTORY
+            // TAB 2: SMART ANALYTICS & GRAPH CHARTS WITH PERCENTAGES
+            // ==========================================
+            if (activeTab == FeeScreenTab.ANALYTICS_GRAPHS) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    item {
+                        Column {
+                            Text(
+                                text = "Smart Fee Analytics & Percentage Graphs / اسمارٹ فیس گراف",
+                                color = GoldPrimary,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "فیس وصولی، بقایا جات، کورس کے لحاظ سے تناسب اور ماہانہ تجزیہ",
+                                color = TextSecondaryDark,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+
+                    // 1. Overall Fee Recovery Rate Card with Dual Animated Bar & Exact Percentages
+                    item {
+                        val totalTarget = (totalCollected + totalPending).coerceAtLeast(1.0)
+                        val collectedPct = (totalCollected / totalTarget) * 100
+                        val pendingPct = (totalPending / totalTarget) * 100
+
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(1.dp, NavyBorder, RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = NavyCard)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.PieChart, contentDescription = null, tint = GoldPrimary, modifier = Modifier.size(20.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Overall Fee Recovery Rate", color = TextPrimaryDark, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(if (collectedPct >= 70) SuccessGreen.copy(alpha = 0.2f) else WarningAmber.copy(alpha = 0.2f))
+                                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                                    ) {
+                                        Text(
+                                            text = "${String.format(Locale.US, "%.1f", collectedPct)}% Recovered",
+                                            color = if (collectedPct >= 70) SuccessGreen else WarningAmber,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                }
+
+                                // Custom Dual-Segment Visual Bar
+                                Canvas(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(24.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                ) {
+                                    val barWidth = size.width
+                                    val barHeight = size.height
+
+                                    // Draw background
+                                    drawRoundRect(
+                                        color = NavyLight,
+                                        size = size,
+                                        cornerRadius = CornerRadius(12f, 12f)
+                                    )
+
+                                    val colWidth = (barWidth * (collectedPct / 100f).toFloat()).coerceIn(0f, barWidth)
+                                    if (colWidth > 0f) {
+                                        drawRoundRect(
+                                            brush = Brush.horizontalGradient(listOf(SuccessGreen, GoldPrimary)),
+                                            size = Size(colWidth, barHeight),
+                                            cornerRadius = CornerRadius(12f, 12f)
+                                        )
+                                    }
+
+                                    val pendWidth = (barWidth * (pendingPct / 100f).toFloat()).coerceIn(0f, barWidth - colWidth)
+                                    if (pendWidth > 0f) {
+                                        drawRoundRect(
+                                            color = DangerRed,
+                                            topLeft = Offset(barWidth - pendWidth, 0f),
+                                            size = Size(pendWidth, barHeight),
+                                            cornerRadius = CornerRadius(12f, 12f)
+                                        )
+                                    }
+                                }
+
+                                // Legend & Metrics with Exact Percentages
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(SuccessGreen))
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text("Paid / وصول (${String.format(Locale.US, "%.1f", collectedPct)}%)", color = TextSecondaryDark, fontSize = 11.sp)
+                                        }
+                                        Text(
+                                            "Rs. ${String.format(Locale.US, "%,.0f", totalCollected)}",
+                                            color = SuccessGreen,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp
+                                        )
+                                    }
+
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(DangerRed))
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text("Pending / بقایا (${String.format(Locale.US, "%.1f", pendingPct)}%)", color = TextSecondaryDark, fontSize = 11.sp)
+                                        }
+                                        Text(
+                                            "Rs. ${String.format(Locale.US, "%,.0f", totalPending)}",
+                                            color = DangerRed,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 13.sp
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 2. Course-wise Fee Breakdown & Share % Chart
+                    item {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(1.dp, NavyBorder, RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = NavyCard)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Course-wise Fee Collection & Share %",
+                                        color = GoldPrimary,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp
+                                    )
+                                    Text(
+                                        text = "کورس کی بنیاد پر فیصد",
+                                        color = TextSecondaryDark,
+                                        fontSize = 10.sp
+                                    )
+                                }
+
+                                if (courseFeeSummaries.isEmpty()) {
+                                    Text("No course data available.", color = TextSecondaryDark, fontSize = 12.sp)
+                                } else {
+                                    courseFeeSummaries.forEach { summary ->
+                                        val isCit = summary.courseName.contains("CIT", ignoreCase = true)
+                                        val isTrading = summary.courseName.contains("Trading", ignoreCase = true)
+                                        val courseColor = if (isCit) InfoBlue else if (isTrading) GoldBright else PurpleAccent
+
+                                        val recoveryPct = if (summary.totalFee > 0) {
+                                            ((summary.paidFee / summary.totalFee) * 100).coerceIn(0.0, 100.0)
+                                        } else 100.0
+
+                                        val shareOfTotalPct = if (totalCollected > 0) {
+                                            ((summary.paidFee / totalCollected) * 100).coerceIn(0.0, 100.0)
+                                        } else 0.0
+
+                                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(courseColor))
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(
+                                                        text = summary.courseName,
+                                                        color = TextPrimaryDark,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 12.sp
+                                                    )
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Text(
+                                                        text = "(${summary.studentCount} students)",
+                                                        color = TextSecondaryDark,
+                                                        fontSize = 10.sp
+                                                    )
+                                                }
+
+                                                Text(
+                                                    text = "${String.format(Locale.US, "%.1f", recoveryPct)}% Recovered",
+                                                    color = if (recoveryPct >= 70) SuccessGreen else GoldBright,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+
+                                            // Progress Bar
+                                            LinearProgressIndicator(
+                                                progress = { (recoveryPct / 100f).toFloat() },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .height(8.dp)
+                                                    .clip(RoundedCornerShape(4.dp)),
+                                                color = courseColor,
+                                                trackColor = NavyLight
+                                            )
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text(
+                                                    text = "Paid: Rs. ${String.format(Locale.US, "%,.0f", summary.paidFee)} • Bal: Rs. ${String.format(Locale.US, "%,.0f", summary.remainingFee)}",
+                                                    color = TextSecondaryDark,
+                                                    fontSize = 10.sp
+                                                )
+                                                Text(
+                                                    text = "Academy Share: ${String.format(Locale.US, "%.1f", shareOfTotalPct)}%",
+                                                    color = GoldSecondary,
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Medium
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // 3. Monthly Fee Collections Breakdown & Graph
+                    item {
+                        val monthlyGroups = allPayments
+                            .groupBy { it.feeMonth.ifBlank { "Current Month" } }
+                            .map { (month, payments) ->
+                                val monthSum = payments.sumOf { it.paidAmount }
+                                val pct = if (totalCollected > 0) (monthSum / totalCollected) * 100 else 0.0
+                                Triple(month, monthSum, pct)
+                            }
+
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .border(1.dp, NavyBorder, RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = NavyCard)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.TrendingUp, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Monthly Fee Collections & % Share", color = GoldPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    }
+                                    Text("ماہانہ فیس تناسب", color = TextSecondaryDark, fontSize = 10.sp)
+                                }
+
+                                if (monthlyGroups.isEmpty()) {
+                                    Text("No monthly payments recorded yet.", color = TextSecondaryDark, fontSize = 12.sp)
+                                } else {
+                                    monthlyGroups.forEach { (month, amount, pct) ->
+                                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text(month, color = TextPrimaryDark, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                                Text(
+                                                    "Rs. ${String.format(Locale.US, "%,.0f", amount)} (${String.format(Locale.US, "%.1f", pct)}%)",
+                                                    color = SuccessGreen,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+                                            LinearProgressIndicator(
+                                                progress = { (pct / 100f).toFloat().coerceIn(0f, 1f) },
+                                                modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                                                color = GoldPrimary,
+                                                trackColor = NavyLight
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    item {
+                        Spacer(modifier = Modifier.height(72.dp))
+                    }
+                }
+            }
+
+            // ==========================================
+            // TAB 3: RECEIPTS & HISTORY
             // ==========================================
             if (activeTab == FeeScreenTab.RECEIPTS_HISTORY) {
                 // Course Filter Chips
@@ -616,6 +950,14 @@ fun FeeManagementScreen(
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Medium
                                     )
+                                    if (payment.feeMonth.isNotBlank()) {
+                                        Text(
+                                            text = "فیس برائے ماہ: ${payment.feeMonth}",
+                                            color = GoldBright,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                     val dateStr = SimpleDateFormat("dd-MMM-yyyy", Locale.US).format(Date(payment.paymentDate))
                                     Text(
                                         text = "$dateStr • ${payment.paymentMethod}",

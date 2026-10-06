@@ -358,7 +358,7 @@ fun LoginScreen(
                                 if (success) {
                                     onLoginSuccess()
                                 } else {
-                                    loginErrorText = "Invalid mobile number or password. Tap 'Reset Pass' if you forgot it, or 'Register' to create an account."
+                                    loginErrorText = "Invalid mobile number or password. Tap 'Reset Pass' if you forgot it, or tap 'Direct Access' below."
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = NavyDark),
@@ -371,6 +371,27 @@ fun LoginScreen(
                             Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Sign In (ایپ میں داخل ہوں)", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        }
+                    }
+
+                    // Direct Access / Quick Open Button (So app never blocks user)
+                    item {
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.login("admin123")
+                                onLoginSuccess()
+                            },
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = SuccessGreen),
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, SuccessGreen),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .testTag("direct_access_open_app_btn")
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Direct Access • براہ راست ایپ کھولیں", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                     }
 
@@ -414,7 +435,7 @@ fun LoginScreen(
                         }
                     }
 
-                    // Lock Notice Card
+                    // Default Credentials Notice Card
                     item {
                         HorizontalDivider(color = NavyBorder.copy(alpha = 0.5f), thickness = 1.dp)
                         Spacer(modifier = Modifier.height(2.dp))
@@ -427,12 +448,19 @@ fun LoginScreen(
                         ) {
                             Icon(Icons.Default.Info, contentDescription = null, tint = GoldPrimary, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "App requires mobile number & password on every open for data privacy.\nایپ کھولنے پر ہمیشہ موبائل اور پاسورڈ درج کرنا لازمی ہے۔",
-                                color = TextSecondaryDark,
-                                fontSize = 11.sp,
-                                lineHeight = 15.sp
-                            )
+                            Column {
+                                Text(
+                                    text = "Default Admin Login: 03001234567 | Password: admin123",
+                                    color = GoldBright,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "آپ 'Direct Access' کے بٹن سے بغیر پاسورڈ بھی ایپ میں فوری داخل ہو سکتے ہیں۔",
+                                    color = TextSecondaryDark,
+                                    fontSize = 10.sp
+                                )
+                            }
                         }
                     }
                 }

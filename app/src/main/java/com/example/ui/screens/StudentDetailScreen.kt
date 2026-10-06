@@ -608,6 +608,9 @@ fun StudentDetailScreen(
                             Spacer(modifier = Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(payment.receiptNo, color = TextPrimaryDark, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                if (payment.feeMonth.isNotBlank()) {
+                                    Text("Fee for: ${payment.feeMonth}", color = GoldBright, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                }
                                 val date = SimpleDateFormat("dd-MMM-yyyy", Locale.US).format(Date(payment.paymentDate))
                                 Text("$date • ${payment.paymentMethod}", color = TextSecondaryDark, fontSize = 11.sp)
                             }
